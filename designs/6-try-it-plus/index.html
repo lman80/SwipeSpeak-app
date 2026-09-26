@@ -1,0 +1,1537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SwipeSpeak: select to hear it, hold to say it. Free for Mac.</title>
+<meta name="description" content="SwipeSpeak is a free Mac menu bar app. Select text in any app and hear it in your Mac's Siri voice, or hold a key, talk, and your words are typed at the cursor. No account, no subscription.">
+<meta name="theme-color" content="#f6f1ff">
+<link rel="icon" type="image/png" href="../../assets/favicon.png">
+<link rel="apple-touch-icon" href="../../assets/icon.png">
+<style>
+:root{
+  --ink:#1c1f3d; --ink2:#4a4f74; --muted:#7a7f9f;
+  --blue:#2f7bff; --blue-d:#1f5fe0; --sel:#b9d5ff;
+  --pink:#ffd3e6; --lav:#e5dbff; --sky:#d3ebff; --mint:#d2f4e4; --butter:#fff0c2; --peach:#ffdfcf;
+  --card:rgba(255,255,255,.78); --line:rgba(28,31,61,.08);
+  --r:30px; --spring:cubic-bezier(.34,1.56,.64,1);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,"Segoe UI",Roboto,sans-serif;
+  --round:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;font-family:var(--font);color:var(--ink);background:#f8f5ff;line-height:1.45;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+img{display:block}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:3px;border-radius:10px}
+
+/* ---------- soft pastel background ---------- */
+.bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:linear-gradient(180deg,#fbf8ff 0%,#f4f8ff 45%,#fff8f3 100%)}
+.bg i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.75}
+.bg .b1{width:48vw;height:48vw;left:-12vw;top:-16vw;background:#ffd6ea}
+.bg .b2{width:44vw;height:44vw;right:-10vw;top:-8vw;background:#d6e6ff}
+.bg .b3{width:40vw;height:40vw;left:30vw;top:30vh;background:#e8ddff;opacity:.55}
+.bg .b4{width:36vw;height:36vw;right:-6vw;bottom:-12vw;background:#d4f5e6}
+.bg .b5{width:30vw;height:30vw;left:-8vw;bottom:-10vw;background:#fff0c4}
+
+.wrap{width:min(1180px,calc(100% - 40px));margin:0 auto}
+
+/* ---------- nav ---------- */
+.nav{position:sticky;top:0;z-index:40;backdrop-filter:saturate(1.6) blur(14px);-webkit-backdrop-filter:saturate(1.6) blur(14px);background:rgba(250,247,255,.66);border-bottom:1px solid rgba(255,255,255,.7)}
+.nav .wrap{display:flex;align-items:center;gap:22px;height:64px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font:800 19px/1 var(--round);letter-spacing:-.01em}
+.brand img{width:34px;height:34px;border-radius:9px;box-shadow:0 4px 12px rgba(47,123,255,.28)}
+.navlinks{display:flex;gap:4px;margin-left:auto}
+.navlinks a{text-decoration:none;font-weight:600;font-size:14.5px;color:var(--ink2);padding:8px 12px;border-radius:999px;transition:background .2s}
+.navlinks a:hover{background:rgba(47,123,255,.08);color:var(--ink)}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;font:700 17px/1 var(--round);color:#fff;background:linear-gradient(180deg,#4b90ff,#2f7bff 55%,#246cf0);padding:17px 26px;border-radius:999px;box-shadow:0 10px 24px -8px rgba(47,123,255,.65),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .35s var(--spring),box-shadow .3s;white-space:nowrap}
+.btn:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 16px 30px -10px rgba(47,123,255,.7),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn:active{transform:scale(.97)}
+.btn svg{width:20px;height:20px;flex:none}
+.btn.soon{background:linear-gradient(180deg,#8e95b8,#6f7699);box-shadow:0 10px 24px -10px rgba(60,66,110,.5)}
+.btn-sm{font-size:14.5px;padding:10px 16px}
+.btn-sm svg{width:16px;height:16px}
+
+/* ---------- labels / stickers ---------- */
+.label{display:inline-flex;align-items:center;gap:8px;font:800 15px/1 var(--round);letter-spacing:.01em;color:var(--ink);background:#fff;padding:9px 14px 9px 10px;border-radius:999px;box-shadow:0 4px 14px -6px rgba(28,31,61,.25)}
+.label b{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--sky);font-size:14px}
+.sticker{position:absolute;font:800 14px/1 var(--round);padding:9px 13px;border-radius:14px;box-shadow:0 6px 14px -6px rgba(28,31,61,.35);border:2px solid #fff;transform:rotate(-7deg);animation:wobble 3.2s ease-in-out infinite;z-index:3;pointer-events:none}
+@keyframes wobble{0%,100%{transform:rotate(-7deg) scale(1)}50%{transform:rotate(-3deg) scale(1.06)}}
+.s-pink{background:#ff8fbf;color:#fff}
+.s-yellow{background:#ffd34d;color:#5a3d00}
+.s-mint{background:#43d19a;color:#fff}
+
+h2.sec{font:800 clamp(28px,4vw,44px)/1.05 var(--round);letter-spacing:-.02em;margin:0 0 26px;text-align:center}
+h2.sec small{display:block;font:700 14px/1 var(--font);color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+section{position:relative}
+.block{padding:70px 0}
+
+/* ---------- hero playground ---------- */
+.hero{padding:30px 0 30px}
+.play{display:grid;grid-template-columns:1.25fr 1fr;gap:26px;align-items:stretch}
+.card{position:relative;background:var(--card);border:1px solid rgba(255,255,255,.95);border-radius:var(--r);box-shadow:0 30px 60px -30px rgba(60,50,140,.35),0 2px 0 rgba(255,255,255,.8) inset;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.pcard{padding:22px 22px 18px;display:flex;flex-direction:column}
+.pcard .head{display:flex;align-items:center;gap:10px;margin-bottom:16px;min-height:44px}
+.read-card{background:linear-gradient(160deg,rgba(255,255,255,.9),rgba(235,243,255,.85))}
+.talk-card{background:linear-gradient(160deg,rgba(255,255,255,.9),rgba(255,238,246,.85))}
+.read-card .sticker{right:22px;top:-14px}
+.talk-card .sticker{right:22px;top:-14px;animation-delay:-1.4s}
+
+.win{position:relative;background:#fff;border-radius:20px;box-shadow:0 1px 0 rgba(28,31,61,.04),0 14px 30px -18px rgba(28,31,61,.35);border:1px solid var(--line);overflow:hidden}
+.winbar{display:flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-bottom:1px solid var(--line);background:linear-gradient(#fafbff,#f3f5fb);font:600 13px/1 var(--font);color:var(--muted)}
+.winbar i{width:12px;height:12px;border-radius:50%;background:#ff6159}
+.winbar i:nth-child(2){background:#ffbd2e}.winbar i:nth-child(3){background:#28c941}
+.winbar span{margin-left:auto;margin-right:auto;transform:translateX(-22px)}
+
+.readable{font-size:clamp(18px,1.75vw,22px);line-height:1.62;margin:0;padding:22px 26px 26px;color:#23264a;cursor:text}
+.readable::selection,.readable *::selection{background:var(--sel)}
+.w{transition:background-color .12s,color .12s}
+.w.gsel{background:var(--sel);box-shadow:.27em 0 0 var(--sel)}
+.w.gsel.glast{box-shadow:none}
+.w.spk{background:var(--blue);color:#fff;border-radius:5px;box-shadow:0 0 0 2px var(--blue)!important}
+.w.said{color:#1847a8}
+
+.foot{font-size:12.5px;color:var(--muted);margin:14px 4px 0;text-align:center}
+.foot b{color:var(--ink2)}
+
+/* ghost pointer */
+.ghost{position:absolute;left:0;top:0;width:26px;height:26px;pointer-events:none;z-index:6;will-change:transform;filter:drop-shadow(0 3px 4px rgba(0,0,0,.28));transition:opacity .5s}
+.ghost svg{width:26px;height:26px;display:block;transform-origin:2px 2px;transition:transform .15s var(--spring)}
+.ghost.press svg{transform:scale(.84)}
+.ghost.gone{opacity:0}
+
+.hint{position:absolute;right:26px;top:74px;z-index:5;background:#1c1f3d;color:#fff;font:700 14px/1 var(--round);padding:10px 14px;border-radius:999px;box-shadow:0 10px 20px -8px rgba(28,31,61,.5);opacity:0;transform:translateY(8px) scale(.9);transition:opacity .35s,transform .45s var(--spring);pointer-events:none;white-space:nowrap}
+.hint.on{opacity:1;transform:none;animation:bob 1.8s ease-in-out infinite .5s}
+.hint::after{content:"";position:absolute;left:28px;bottom:-6px;width:12px;height:12px;background:#1c1f3d;transform:rotate(45deg);border-radius:2px}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+/* ---------- the bubble ---------- */
+.bubble{position:fixed;left:0;top:0;z-index:60;display:flex;align-items:center;gap:2px;padding:4px;background:rgba(255,255,255,.96);border-radius:999px;box-shadow:0 12px 28px -8px rgba(20,30,80,.45),0 0 0 1px rgba(28,31,61,.08);opacity:0;transform:scale(.4);transform-origin:left center;transition:opacity .16s,transform .38s var(--spring);pointer-events:none;user-select:none;-webkit-user-select:none;touch-action:none}
+.bubble.left{transform-origin:right center}
+.bubble.show{opacity:1;transform:scale(1);pointer-events:auto}
+.bubble.ghostb{position:absolute;z-index:5}
+.zone{position:relative;width:46px;height:40px;border:0;border-radius:999px;background:transparent;font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center;transition:background .15s,transform .25s var(--spring)}
+.zone.speak{width:52px;background:#eaf2ff}
+.zone:hover,.zone.hot{background:#d6e6ff;transform:scale(1.08)}
+.zone.sum:hover,.zone.sum.hot{background:#fff1c7}
+.zone.more:hover,.zone.more.hot{background:#e8e0ff}
+.zone::after{content:"";position:absolute;inset:-3px;border-radius:999px;border:3px solid var(--blue);opacity:0;transform:scale(.7)}
+.zone.dwell::after{animation:dwell .15s ease-out forwards}
+@keyframes dwell{to{opacity:1;transform:scale(1)}}
+.bubble .tip{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1c1f3d;color:#fff;font:700 12px/1 var(--round);padding:7px 10px;border-radius:999px;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none}
+.bubble .tip.on{opacity:1}
+
+/* speaking chip */
+.chip{position:fixed;left:0;top:0;z-index:61;display:flex;align-items:center;gap:9px;background:#1c1f3d;color:#fff;border-radius:999px;padding:8px 8px 8px 14px;font:700 14px/1 var(--round);box-shadow:0 14px 28px -10px rgba(20,30,80,.55);opacity:0;transform:scale(.6);transition:opacity .2s,transform .4s var(--spring);pointer-events:none;white-space:nowrap}
+.chip.ghostc{position:absolute;z-index:5;padding-right:14px}
+.chip.show{opacity:1;transform:none;pointer-events:auto}
+.chip small{font:600 11.5px/1 var(--font);color:#aab3e6}
+.chip .x{border:0;background:rgba(255,255,255,.14);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:12px;display:grid;place-items:center}
+.chip .x:hover{background:rgba(255,255,255,.28)}
+.chip.stopped{background:#ff5d8f}
+.chip.stopped{animation:shake .45s}
+@keyframes shake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+.eq{display:inline-flex;gap:3px;align-items:center;height:16px}
+.eq i{width:3px;height:100%;border-radius:2px;background:#7fb0ff;animation:eq .9s ease-in-out infinite;transform-origin:center}
+.eq i:nth-child(2){animation-delay:-.3s;background:#a996ff}
+.eq i:nth-child(3){animation-delay:-.6s;background:#ff9cc8}
+.eq i:nth-child(4){animation-delay:-.15s}
+@keyframes eq{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+
+/* summary panel */
+.sumpanel{position:fixed;z-index:62;left:0;top:0;width:min(340px,calc(100vw - 24px));background:#fff;border-radius:22px;padding:16px 18px 16px;box-shadow:0 24px 50px -16px rgba(20,30,80,.45),0 0 0 1px rgba(28,31,61,.07);opacity:0;transform:translateY(10px) scale(.92);transition:opacity .2s,transform .4s var(--spring);pointer-events:none}
+.sumpanel.show{opacity:1;transform:none;pointer-events:auto}
+.sumpanel h4{margin:0 0 10px;font:800 15px/1 var(--round);display:flex;align-items:center;gap:8px}
+.sumpanel h4 button{margin-left:auto;border:0;background:#f1f2f8;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:12px}
+.sumpanel ul{margin:0;padding:0 0 0 2px;list-style:none;display:grid;gap:8px}
+.sumpanel li{position:relative;padding-left:20px;font-size:15.5px;line-height:1.45}
+.sumpanel li::before{content:"";position:absolute;left:3px;top:.55em;width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#ffc13b,#ff7eb3)}
+.sumpanel p{margin:10px 0 0;font-size:11.5px;color:var(--muted)}
+
+/* ---------- dictation card ---------- */
+.talk-win{display:flex;flex-direction:column;flex:1;min-height:250px}
+.notch{position:absolute;left:50%;top:0;z-index:4;transform:translateX(-50%);height:24px;width:110px;background:#000;border-radius:0 0 16px 16px;display:flex;align-items:center;justify-content:center;gap:9px;color:#fff;font:700 12.5px/1 var(--round);overflow:hidden;transition:width .45s var(--spring),height .45s var(--spring),border-radius .3s}
+.notch .nw{display:flex;align-items:center;gap:3px;height:18px;opacity:0;transition:opacity .2s}
+.notch .nw i{width:3px;height:100%;border-radius:2px;background:#fff;transform:scaleY(.2);transform-origin:center}
+.notch .nt{opacity:0;transition:opacity .2s;white-space:nowrap}
+.notch .dot{width:8px;height:8px;border-radius:50%;background:#ff3b30;opacity:0;flex:none}
+.notch.on{width:230px;height:40px;border-radius:0 0 22px 22px}
+.notch.on .nw,.notch.on .nt,.notch.on .dot{opacity:1}
+.notch.on .dot{animation:blink 1s ease-in-out infinite}
+.notch.on .nw i{animation:wave .7s ease-in-out infinite}
+.notch.proc .nw i{animation:proc 1s ease-in-out infinite;background:#8fb8ff}
+.notch.proc .dot{background:#8fb8ff;animation:none}
+@keyframes blink{50%{opacity:.25}}
+@keyframes wave{0%,100%{transform:scaleY(.2)}50%{transform:scaleY(var(--h,1))}}
+@keyframes proc{0%,100%{transform:scaleY(.2)}50%{transform:scaleY(.45)}}
+.chat{flex:1;padding:48px 16px 8px;display:flex;flex-direction:column;gap:8px;justify-content:flex-end;min-height:120px}
+.msg{max-width:78%;padding:9px 13px;border-radius:18px;font-size:15px;line-height:1.35;animation:pop .45s var(--spring) both}
+.msg.in{background:#eceef4;align-self:flex-start;border-bottom-left-radius:6px}
+.msg.out{background:linear-gradient(180deg,#4b90ff,#2f7bff);color:#fff;align-self:flex-end;border-bottom-right-radius:6px}
+@keyframes pop{from{opacity:0;transform:scale(.6) translateY(10px)}to{opacity:1;transform:none}}
+.msgrow{display:flex;align-items:flex-end;gap:8px;padding:10px 12px 12px;border-top:1px solid var(--line)}
+.msgbox{flex:1;min-height:42px;border:1.5px solid #e3e6f0;border-radius:21px;padding:10px 15px;font-size:15.5px;line-height:1.35;background:#fbfbfe;outline:none;transition:border-color .2s,box-shadow .2s;cursor:text;word-break:break-word}
+.msgbox:focus{border-color:#9dc0ff;box-shadow:0 0 0 4px rgba(47,123,255,.14)}
+.msgbox.rec{border-color:#ff8fb0;box-shadow:0 0 0 4px rgba(255,93,143,.14)}
+.msgbox .ph{color:#a5a9c2}
+.msgbox .live{color:#8a90b4;font-style:italic}
+.msgbox .caret{display:inline-block;width:2px;height:1.1em;background:var(--blue);vertical-align:-3px;margin-left:1px;animation:caret 1s steps(1) infinite}
+@keyframes caret{50%{opacity:0}}
+.send{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--blue);color:#fff;font-size:18px;cursor:pointer;display:grid;place-items:center;transition:transform .3s var(--spring),opacity .2s}
+.send:disabled{opacity:.3;cursor:default}
+.send:not(:disabled):hover{transform:scale(1.1)}
+
+.keyrow{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:18px}
+.talkkey{position:relative;border:0;cursor:pointer;display:flex;align-items:center;gap:14px;padding:12px 22px 12px 12px;border-radius:24px;background:linear-gradient(180deg,#fff,#eef0f8);box-shadow:0 7px 0 #cfd3e6,0 14px 26px -10px rgba(28,31,61,.4),inset 0 1px 0 #fff;transition:transform .12s,box-shadow .12s;user-select:none;-webkit-user-select:none;touch-action:none;-webkit-touch-callout:none}
+.talkkey .kcap{display:grid;place-items:center;width:58px;height:58px;border-radius:16px;background:linear-gradient(180deg,#2c3052,#1c1f3d);color:#fff;font:700 20px/1 var(--round);box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
+.talkkey .kl{font:800 17px/1.1 var(--round);text-align:left}
+.talkkey .kl small{display:block;font:600 12px/1.3 var(--font);color:var(--muted);margin-top:3px}
+.talkkey:hover{transform:translateY(-1px)}
+.talkkey.down{transform:translateY(6px);box-shadow:0 1px 0 #cfd3e6,0 6px 14px -8px rgba(28,31,61,.4),inset 0 1px 0 #fff}
+.talkkey.down .kcap{background:linear-gradient(180deg,#ff6b98,#ff3d7f)}
+.talkkey .ring{position:absolute;left:12px;top:12px;width:58px;height:58px;border-radius:16px;pointer-events:none}
+.talkkey.down .ring{animation:ring 1.2s ease-out infinite}
+@keyframes ring{from{box-shadow:0 0 0 0 rgba(255,61,127,.5)}to{box-shadow:0 0 0 18px rgba(255,61,127,0)}}
+.demo-badge{display:none;font:700 11px/1 var(--round);background:var(--butter);color:#6b4d00;padding:5px 8px;border-radius:999px;margin-left:auto}
+.demo-badge.on{display:inline-block}
+
+.hero-cta{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:30px}
+.req{font:600 13.5px/1.3 var(--font);color:var(--muted)}
+.req b{color:var(--ink2)}
+
+/* ---------- confetti ---------- */
+.confetti{position:fixed;z-index:80;left:0;top:0;width:8px;height:8px;border-radius:2px;pointer-events:none}
+
+/* ---------- gestures ---------- */
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.gcard{padding:18px 18px 22px;text-align:center}
+.stage{position:relative;height:190px;border-radius:22px;background:#fff;border:1px solid var(--line);overflow:hidden;margin-bottom:16px}
+.gcard:nth-child(1) .stage{background:linear-gradient(160deg,#fff,#eef5ff)}
+.gcard:nth-child(2) .stage{background:linear-gradient(160deg,#fff,#fff0f6)}
+.gcard:nth-child(3) .stage{background:linear-gradient(160deg,#fff,#eefcf5)}
+.gcard h3{margin:0;font:800 21px/1.1 var(--round);letter-spacing:-.01em}
+.gcard h3 span{color:var(--muted);font-weight:700}
+.gcard p{margin:6px 0 0;font-size:13.5px;color:var(--muted)}
+.ln{position:absolute;left:24px;height:10px;border-radius:5px;background:#e3e7f2}
+.selbar{position:absolute;left:22px;height:18px;border-radius:5px;background:var(--sel);transform-origin:left center}
+.mini-cursor{position:absolute;width:22px;height:22px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+.mini-bubble{position:absolute;display:flex;gap:2px;padding:3px;background:#fff;border-radius:999px;box-shadow:0 6px 14px -5px rgba(20,30,80,.4),0 0 0 1px rgba(28,31,61,.07);font-size:13px}
+.mini-bubble span{width:28px;height:24px;border-radius:999px;display:grid;place-items:center}
+.mini-bubble .on{background:#e8e0ff}
+
+/* scroll card */
+.g-scroll .s1{top:34px;width:78%}.g-scroll .s2{top:62px;width:70%}.g-scroll .s3{top:90px;width:74%}.g-scroll .s4{top:118px;width:52%}
+.g-scroll .sb1{top:30px;width:0;animation:sb1 4s ease-in-out infinite}
+.g-scroll .sb2{top:58px;width:0;animation:sb2 4s ease-in-out infinite}
+.g-scroll .sb3{top:86px;width:0;animation:sb3 4s ease-in-out infinite}
+@keyframes sb1{0%{width:0}10%,100%{width:calc(78% + 4px)}}
+@keyframes sb2{0%,25%{width:0}45%,100%{width:calc(70% + 4px)}}
+@keyframes sb3{0%,50%{width:0}72%,92%{width:calc(74% + 4px)}100%{width:calc(74% + 4px);opacity:0}}
+.g-scroll .mini-bubble{right:26px;bottom:24px}
+.mouse{position:absolute;right:130px;bottom:18px;width:30px;height:46px;border:3px solid #1c1f3d;border-radius:16px;background:#fff}
+.mouse::after{content:"";position:absolute;left:50%;top:7px;width:4px;height:9px;margin-left:-2px;border-radius:2px;background:var(--blue);animation:wheel 1s ease-in-out infinite}
+@keyframes wheel{0%{transform:translateY(0);opacity:1}80%{transform:translateY(10px);opacity:0}100%{opacity:0}}
+
+/* shake card */
+.spk-big{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:92px;height:92px;border-radius:28px;background:#fff;box-shadow:0 10px 24px -10px rgba(20,30,80,.4);display:grid;place-items:center;font-size:40px}
+.spk-big .wv{position:absolute;right:-36px;top:50%;width:26px;height:44px;margin-top:-22px}
+.spk-big .wv i{position:absolute;top:50%;border:4px solid #ff7eb3;border-left:0;border-top-color:transparent;border-bottom-color:transparent;border-radius:0 50% 50% 0;animation:wv 3.6s ease-out infinite}
+.spk-big .wv i:nth-child(1){left:0;width:12px;height:20px;margin-top:-10px}
+.spk-big .wv i:nth-child(2){left:6px;width:20px;height:40px;margin-top:-20px;animation-delay:.15s}
+@keyframes wv{0%,40%{opacity:1}48%,100%{opacity:0}}
+.g-shake .mini-cursor{left:50%;top:70%;animation:shk 3.6s ease-in-out infinite}
+@keyframes shk{0%,12%{transform:translateX(-50px)}16%{transform:translateX(30px)}20%{transform:translateX(-30px)}24%{transform:translateX(30px)}28%{transform:translateX(-30px)}32%{transform:translateX(30px)}36%{transform:translateX(-20px)}44%,100%{transform:translateX(40px)}}
+.stopb{position:absolute;left:50%;top:44%;margin:-68px 0 0 20px;background:#ff5d8f;color:#fff;font:800 13px/1 var(--round);padding:8px 11px;border-radius:999px;border:2px solid #fff;box-shadow:0 6px 14px -6px rgba(255,61,127,.7);animation:stopb 3.6s var(--spring) infinite}
+@keyframes stopb{0%,40%{transform:scale(0) rotate(-10deg)}48%,88%{transform:scale(1) rotate(-6deg)}96%,100%{transform:scale(0)}}
+
+/* circle card */
+.g-circle .c1{top:30px;width:80%}.g-circle .c2{top:66px;width:72%}.g-circle .c3{top:102px;width:62%}
+.g-circle .hl{position:absolute;left:18px;height:22px;width:calc(80% + 12px);border-radius:7px;background:rgba(47,123,255,.2);box-shadow:inset 0 0 0 2px rgba(47,123,255,.55);top:24px;animation:hop 4.8s var(--spring) infinite}
+@keyframes hop{0%,28%{top:24px;width:calc(80% + 12px)}36%,62%{top:60px;width:calc(72% + 12px)}70%,94%{top:96px;width:calc(62% + 12px)}100%{top:24px;width:calc(80% + 12px)}}
+.orbit{position:absolute;right:46px;bottom:28px;width:56px;height:56px;border-radius:50%;border:2px dashed rgba(67,209,154,.8)}
+.orbit .arm{position:absolute;inset:0;animation:orb 1.6s linear infinite}
+.orbit .mini-cursor{left:44px;top:-2px}
+@keyframes orb{to{transform:rotate(360deg)}}
+.orbit::after{content:"↻";position:absolute;inset:0;display:grid;place-items:center;font:800 20px/1 var(--round);color:#20a574}
+
+/* cleanup */
+.two{display:grid;grid-template-columns:1.15fr .85fr;gap:22px}
+.clean{padding:26px}
+.clean .row{display:flex;gap:14px;align-items:flex-start}
+.clean .tagx{flex:none;font:800 12px/1 var(--round);padding:7px 10px;border-radius:999px;margin-top:4px}
+.t-said{background:var(--peach);color:#8a3a12}
+.t-got{background:var(--mint);color:#0d6b47}
+.messy{font-size:clamp(18px,1.9vw,22px);line-height:1.55;color:var(--ink2);margin:0}
+.messy s{text-decoration:none;position:relative;color:#b0a3b0;display:inline-block}
+.messy s::after{content:"";position:absolute;left:-2px;right:-2px;top:52%;height:3px;border-radius:2px;background:#ff5d8f;transform:scaleX(0);transform-origin:left;animation:strike 7s ease-out infinite}
+.messy s:nth-of-type(2)::after{animation-delay:.25s}.messy s:nth-of-type(3)::after{animation-delay:.5s}.messy s:nth-of-type(4)::after{animation-delay:.75s}.messy s:nth-of-type(5)::after{animation-delay:1s}
+@keyframes strike{0%,12%{transform:scaleX(0)}20%,92%{transform:scaleX(1)}100%{transform:scaleX(0)}}
+.arrowdown{display:grid;place-items:center;height:56px;font-size:26px;color:var(--blue);animation:bob 1.6s ease-in-out infinite}
+.cleantext{font-size:clamp(19px,2vw,23px);line-height:1.55;margin:0;color:var(--ink);font-weight:600}
+.cleantext .fresh{display:inline;animation:fresh 7s ease-out infinite;border-radius:6px}
+@keyframes fresh{0%,24%{background:transparent}32%{background:#d2f4e4}60%,100%{background:transparent}}
+.clean .note{margin:16px 0 0;font-size:12.5px;color:var(--muted)}
+
+/* speed */
+.speed{padding:26px;display:flex;flex-direction:column;gap:18px}
+.speed h3{margin:0;font:800 30px/1.05 var(--round);letter-spacing:-.02em}
+.speed h3 em{font-style:normal;background:linear-gradient(90deg,#2f7bff,#a55bff 60%,#ff5d8f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lane{display:grid;gap:8px}
+.lane .top{display:flex;align-items:center;gap:8px;font:800 15px/1 var(--round)}
+.lane .top .n{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.track{height:16px;border-radius:999px;background:#eef0f7;overflow:hidden}
+.fill{height:100%;width:0;border-radius:999px}
+.lane.type .fill{background:linear-gradient(90deg,#c3c8de,#9aa2c4)}
+.lane.talk .fill{background:linear-gradient(90deg,#5aa2ff,#a55bff,#ff7eb3)}
+.lane .txt{font-size:13px;color:var(--muted);height:18px;white-space:nowrap;overflow:hidden;text-overflow:clip}
+
+/* apps */
+.marquee{overflow:hidden;padding:6px 0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.mtrack{display:flex;gap:12px;width:max-content;animation:mq 40s linear infinite}
+.marquee.rev .mtrack{animation-direction:reverse;animation-duration:46s}
+@keyframes mq{to{transform:translateX(-50%)}}
+.appchip{font:800 17px/1 var(--round);padding:15px 22px;border-radius:18px;background:#fff;box-shadow:0 6px 16px -10px rgba(28,31,61,.35);border:2px solid #fff;white-space:nowrap}
+.appchip:nth-child(6n+1){background:var(--sky)}.appchip:nth-child(6n+2){background:var(--pink)}.appchip:nth-child(6n+3){background:var(--mint)}
+.appchip:nth-child(6n+4){background:var(--butter)}.appchip:nth-child(6n+5){background:var(--lav)}.appchip:nth-child(6n){background:var(--peach)}
+.apps-cap{text-align:center;font-size:13.5px;color:var(--muted);margin:16px 0 0}
+
+/* trust strip */
+.strip{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+.pill{display:flex;align-items:center;gap:9px;background:#fff;border-radius:999px;padding:11px 18px 11px 12px;font:800 15.5px/1 var(--round);box-shadow:0 8px 20px -12px rgba(28,31,61,.4)}
+.pill b{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;font-size:15px}
+.strip-cap{text-align:center;font-size:12.5px;color:var(--muted);margin:14px auto 0;max-width:560px}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.step{padding:20px 20px 22px;text-align:center}
+.step .num{position:absolute;left:18px;top:-14px;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font:900 18px/1 var(--round);color:#fff;border:3px solid #fff;box-shadow:0 6px 14px -6px rgba(28,31,61,.4);transform:rotate(-8deg)}
+.step:nth-child(1) .num{background:#2f7bff}.step:nth-child(2) .num{background:#ff5d8f}.step:nth-child(3) .num{background:#43d19a}
+.step .vis{height:130px;border-radius:18px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;margin-bottom:14px;overflow:hidden;position:relative}
+.step h3{margin:0;font:800 19px/1.15 var(--round)}
+.step p{margin:5px 0 0;font-size:13px;color:var(--muted)}
+.zipvis{display:flex;align-items:center;gap:14px}
+.zipvis img{width:64px;height:64px;border-radius:15px;box-shadow:0 8px 18px -8px rgba(47,123,255,.6);animation:bob 2.4s ease-in-out infinite}
+.zipvis .arr{font:800 26px/1 var(--round);color:var(--muted)}
+.zipvis .appsf{width:58px;height:48px;border-radius:9px;background:linear-gradient(#8ec5ff,#5aa2ff);position:relative;display:grid;place-items:center;color:#fff;font:800 11px/1 var(--round)}
+.settings{width:86%;background:#f6f7fb;border-radius:12px;padding:10px 12px;text-align:left;font-size:11.5px;color:var(--ink2);box-shadow:0 0 0 1px var(--line)}
+.settings .row1{font-weight:700;margin-bottom:6px;color:var(--ink)}
+.settings .row2{display:flex;align-items:center;gap:8px}
+.settings .row2 span{flex:1;line-height:1.3}
+.settings .oa{flex:none;background:#fff;border:1px solid #d7dae6;border-radius:7px;padding:6px 9px;font-weight:700;color:var(--ink);position:relative;animation:oa 2.4s ease-in-out infinite}
+@keyframes oa{0%,60%,100%{box-shadow:0 0 0 0 rgba(47,123,255,0)}30%{box-shadow:0 0 0 5px rgba(47,123,255,.35)}}
+.checks{display:grid;gap:7px;text-align:left;font:700 13px/1 var(--round)}
+.checks div{display:flex;align-items:center;gap:8px}
+.checks i{width:18px;height:18px;border-radius:50%;background:#43d19a;display:grid;place-items:center;color:#fff;font-style:normal;font-size:11px;animation:popin 3s var(--spring) infinite both}
+.checks div:nth-child(2) i{animation-delay:.25s}.checks div:nth-child(3) i{animation-delay:.5s}
+@keyframes popin{0%,8%{transform:scale(0)}20%,100%{transform:scale(1)}}
+
+/* faq */
+.faq{max-width:760px;margin:0 auto;display:grid;gap:12px}
+.faq details{background:rgba(255,255,255,.85);border-radius:20px;padding:0 20px;box-shadow:0 8px 20px -14px rgba(28,31,61,.4);border:1px solid #fff}
+.faq summary{cursor:pointer;list-style:none;padding:18px 0;font:800 17px/1.25 var(--round);display:flex;align-items:center;gap:12px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";margin-left:auto;width:28px;height:28px;flex:none;border-radius:50%;background:var(--sky);display:grid;place-items:center;font-weight:800;transition:transform .35s var(--spring)}
+.faq details[open] summary::after{transform:rotate(45deg);background:var(--pink)}
+.faq details p{margin:0 0 18px;color:var(--ink2);font-size:15px}
+.faq code{font-size:13px;background:#f0f2f8;padding:2px 6px;border-radius:6px}
+
+/* final */
+.final{padding:48px 24px 46px;text-align:center;overflow:hidden;background:linear-gradient(135deg,rgba(214,230,255,.95),rgba(255,214,234,.9) 55%,rgba(255,240,196,.9))}
+.final img{width:120px;height:120px;border-radius:28px;margin:0 auto 18px;box-shadow:0 20px 40px -14px rgba(47,123,255,.6);animation:float 4s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-10px) rotate(3deg)}}
+.final h2{font:900 clamp(30px,4.5vw,50px)/1 var(--round);letter-spacing:-.02em;margin:0 0 22px}
+.final .req{margin-top:14px}
+.spark{position:absolute;font-size:22px;animation:tw 2.6s ease-in-out infinite}
+@keyframes tw{0%,100%{transform:scale(.6) rotate(0);opacity:.4}50%{transform:scale(1.15) rotate(20deg);opacity:1}}
+footer{padding:36px 0 50px;text-align:center;font-size:13px;color:var(--muted)}
+footer a{color:var(--ink2);font-weight:600}
+
+
+/* ---------- v6: free strip ---------- */
+.freestrip{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin:4px 0 22px}
+.fs{display:inline-flex;align-items:center;gap:9px;font:800 15px/1 var(--round);padding:11px 16px 11px 12px;border-radius:999px;background:#fff;box-shadow:0 8px 20px -12px rgba(28,31,61,.35);border:1px solid rgba(255,255,255,.9)}
+.fs i{font-style:normal;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;font-size:15px}
+.fs.free{background:linear-gradient(135deg,#43d19a,#2fb8e6);color:#fff}
+.fs.free i{background:rgba(255,255,255,.25)}
+.lc{position:relative;display:inline-flex;align-items:center;padding:5px;border-radius:999px;background:#fff;box-shadow:0 8px 20px -12px rgba(28,31,61,.35)}
+.lc span{position:relative;z-index:1;font:800 14px/1 var(--round);padding:9px 14px;border-radius:999px;transition:color .4s;display:flex;gap:7px;align-items:center}
+.lc span[data-m]{width:150px;justify-content:center}
+.lc .knob{position:absolute;z-index:0;top:5px;bottom:5px;left:5px;width:150px;border-radius:999px;background:var(--ink);transition:transform .6s var(--spring)}
+.lc.cloud .knob{transform:translateX(150px)}
+.lc span.on{color:#fff}
+/* ---------- v6: ghost steps ---------- */
+.steps3{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.steps3 span{font:800 13.5px/1 var(--round);padding:9px 13px;border-radius:999px;background:rgba(255,255,255,.7);color:var(--muted);border:1px solid var(--line);transition:all .35s var(--spring)}
+.steps3 span.on{background:var(--blue);color:#fff;border-color:var(--blue);transform:scale(1.08);box-shadow:0 8px 18px -8px rgba(47,123,255,.7)}
+.steps3 span.done{color:var(--blue);background:#eaf2ff;border-color:#cfe0ff}
+/* ---------- v6: free local/cloud section ---------- */
+.fl{display:grid;grid-template-columns:1fr auto 1fr;gap:22px;align-items:center}
+.flc{padding:26px;border-radius:var(--r);text-align:center;transition:transform .6s var(--spring),opacity .6s}
+.flc .big{font-size:52px;line-height:1;margin-bottom:12px}
+.flc h3{font:800 24px/1.1 var(--round);margin:0 0 12px}
+.flc ul{list-style:none;padding:0;margin:0;display:grid;gap:8px;font-weight:600;color:var(--ink2)}
+.flc li{background:rgba(255,255,255,.75);border-radius:14px;padding:9px 12px}
+.flc.dim{opacity:.55;transform:scale(.95)}
+.flc.lit{transform:scale(1.03)}
+.zero{text-align:center}
+.zero b{display:block;font:900 clamp(56px,8vw,96px)/1 var(--round);letter-spacing:-.04em;background:linear-gradient(135deg,#43d19a,#2f7bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.zero span{font:800 14px/1 var(--round);color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.flnote{text-align:center;color:var(--muted);font-size:14px;margin-top:18px}
+@media (max-width:820px){.fl{grid-template-columns:1fr}.zero{order:-1}}
+/* ---------- v6: reads anything ---------- */
+.ra{display:grid;grid-template-columns:260px 1fr;gap:22px;align-items:stretch}
+.ra-tabs{display:grid;gap:10px;align-content:center}
+.ra-tab{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:20px;background:rgba(255,255,255,.6);border:1px solid var(--line);font:800 16px/1 var(--round);color:var(--muted);transition:all .4s var(--spring)}
+.ra-tab i{font-style:normal;font-size:22px}
+.ra-tab.on{background:#fff;color:var(--ink);transform:translateX(6px);box-shadow:0 14px 30px -18px rgba(28,31,61,.45)}
+.ra-win{position:relative;min-height:300px}
+.ra-doc{padding:26px 30px 70px;font-size:clamp(17px,1.6vw,20px);line-height:1.65;color:#23264a}
+.ra-doc .kick{font:800 12px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.ra-doc .pdf{font-family:Georgia,"New York",serif}
+.ra-doc .w.rs{background:var(--sel);box-shadow:.27em 0 0 var(--sel)}
+.ra-doc .w.rk{background:var(--blue);color:#fff;border-radius:5px;box-shadow:0 0 0 2px var(--blue)}
+.ra-bub{position:absolute;display:flex;gap:2px;padding:5px;border-radius:999px;background:#fff;box-shadow:0 12px 26px -10px rgba(28,31,61,.45);opacity:0;transform:scale(.6);transition:opacity .2s,transform .35s var(--spring)}
+.ra-bub.show{opacity:1;transform:none}
+.ra-bub span{display:grid;place-items:center;width:40px;height:36px;border-radius:999px;font-size:17px}
+.ra-bub span.hot{background:var(--blue)}
+.ra-speed{position:absolute;right:18px;bottom:16px;display:flex;align-items:center;gap:8px;font:800 13px/1 var(--round);color:var(--muted)}
+.ra-speed b{background:var(--ink);color:#fff;padding:7px 10px;border-radius:999px;min-width:44px;text-align:center}
+.ra-chip{position:absolute;left:18px;bottom:16px;display:flex;align-items:center;gap:8px;font:800 13px/1 var(--round);background:#fff;padding:8px 12px;border-radius:999px;box-shadow:0 8px 20px -12px rgba(28,31,61,.4);opacity:0;transition:opacity .3s}
+.ra-chip.show{opacity:1}
+.ra-chip .eq{display:flex;gap:2px;align-items:center;height:14px}
+.ra-chip .eq i{width:3px;height:5px;border-radius:2px;background:var(--blue);animation:raeq .7s ease-in-out infinite alternate}
+.ra-chip .eq i:nth-child(2){animation-delay:-.2s}.ra-chip .eq i:nth-child(3){animation-delay:-.4s}
+@keyframes raeq{to{height:14px}}
+@media (max-width:820px){.ra{grid-template-columns:1fr}.ra-tabs{grid-auto-flow:column;overflow-x:auto}.ra-tab.on{transform:none}}
+/* ---------- v6: vs Wispr Flow options ---------- */
+.opt{position:relative;margin-top:56px;padding-top:26px}
+.opt-tag{position:absolute;top:-6px;left:50%;transform:translateX(-50%) rotate(-3deg);font:800 13px/1 var(--round);padding:8px 14px;border-radius:12px;background:#1c1f3d;color:#fff;border:2px solid #fff;box-shadow:0 8px 18px -8px rgba(28,31,61,.5);z-index:2;white-space:nowrap}
+.vs{overflow:hidden}
+.vs table{width:100%;border-collapse:collapse;font-size:16px}
+.vs th,.vs td{padding:16px 18px;text-align:center;border-bottom:1px solid var(--line)}
+.vs th{font:800 15px/1.2 var(--round)}
+.vs td:first-child,.vs th:first-child{text-align:left;font-weight:700;color:var(--ink2)}
+.vs .us{background:rgba(47,123,255,.07)}
+.vs th.us{color:var(--blue)}
+.vs .y{color:#18a86b;font-weight:900;font-size:19px}
+.vs .n{color:#c2c6d8;font-weight:900;font-size:19px}
+.vs tr:last-child td{border-bottom:0}
+.src{text-align:center;color:var(--muted);font-size:12.5px;margin-top:12px}
+.bill{padding:30px;display:grid;gap:22px}
+.bar{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:center}
+.bar .who{font:800 16px/1.2 var(--round)}
+.bar .track{height:54px;border-radius:16px;background:rgba(28,31,61,.05);overflow:hidden;position:relative}
+.bar .fill{position:absolute;inset:0 auto 0 0;width:0;border-radius:16px;display:flex;align-items:center;justify-content:flex-end;padding-right:16px;font:900 20px/1 var(--round);color:#fff;transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+.bar.them .fill{background:linear-gradient(90deg,#b7bbd1,#8e95b8)}
+.bar.us .fill{background:linear-gradient(90deg,#43d19a,#2fb8e6);min-width:74px;justify-content:center;padding:0}
+.bill.go .bar.them .fill{width:100%}
+.bill.go .bar.us .fill{width:6%}
+.bill .extra{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.bill .extra span{font:800 14px/1 var(--round);padding:10px 14px;border-radius:999px;background:#fff;border:1px solid var(--line)}
+@media (max-width:640px){.bar{grid-template-columns:1fr}}
+.way{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.way .card{padding:30px 24px;text-align:center}
+.way h3{font:800 20px/1.2 var(--round);margin:0 0 20px}
+.flow{display:flex;align-items:center;justify-content:center;gap:12px;font-size:44px;height:80px}
+.flow .arr{position:relative;width:110px;height:34px}
+.flow .arr i{position:absolute;left:0;right:0;height:4px;border-radius:4px;background:rgba(28,31,61,.12)}
+.flow .arr i.t{top:8px}.flow .arr i.b{bottom:8px}
+.flow .arr b{position:absolute;width:12px;height:12px;border-radius:50%;top:4px;left:0;background:var(--blue);animation:rt 1.6s linear infinite}
+.flow .arr b.back{top:auto;bottom:4px;background:#ff5d8f;animation:lt 1.6s linear infinite;animation-delay:-.8s}
+@keyframes rt{from{left:0}to{left:calc(100% - 12px)}}
+@keyframes lt{from{left:calc(100% - 12px)}to{left:0}}
+.way .cap{margin-top:14px;font:800 15px/1.3 var(--round);color:var(--ink2)}
+.way .them{opacity:.8}
+.way .us{background:linear-gradient(160deg,rgba(255,255,255,.95),rgba(232,241,255,.9));box-shadow:0 30px 60px -30px rgba(47,123,255,.5)}
+@media (max-width:720px){.way{grid-template-columns:1fr}}
+
+/* paused off screen */
+.off *,.off *::before,.off *::after{animation-play-state:paused!important}
+
+/* ---------- responsive ---------- */
+@media (max-width:980px){
+  .play{grid-template-columns:1fr}
+  .two{grid-template-columns:1fr}
+  .g3,.steps{grid-template-columns:1fr;max-width:520px;margin:0 auto}
+  .steps{gap:30px}
+}
+@media (max-width:640px){
+  .wrap{width:calc(100% - 28px)}
+  .navlinks{display:none}
+  .nav .btn-sm{margin-left:auto}
+  .nav .btn-sm .dl-label{display:none}
+  .nav .btn-sm::after{content:"Download"}
+  .hero{padding-top:22px}
+  .pcard{padding:18px 14px 16px}
+  .readable{padding:18px 18px 20px}
+  .hint{right:14px;top:66px;font-size:13px}
+  .talkkey{padding:10px 18px 10px 10px}
+  .block{padding:54px 0}
+  .appchip{font-size:15px;padding:12px 17px}
+  .speed h3{font-size:25px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
+  .mtrack{flex-wrap:wrap;width:auto;justify-content:center}
+  .marquee{-webkit-mask-image:none;mask-image:none}
+  .marquee .dup{display:none}
+  .marquee.rev{display:none}
+  .g-scroll .sb1{width:calc(78% + 4px)}.g-scroll .sb2{width:calc(70% + 4px)}
+  .messy s::after{transform:scaleX(1)}
+  .stopb{transform:rotate(-6deg)}
+  .checks i{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i><i class="b5"></i></div>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="../../assets/icon.png" alt="" width="34" height="34"><span>SwipeSpeak</span></a>
+    <nav class="navlinks" aria-label="Sections">
+      <a href="#gestures">Gestures</a><a href="#apps">Every app</a><a href="#install">Install</a><a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-sm dl" href="https://github.com/lman80/SwipeSpeak-app/releases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg><span class="dl-label">Download</span></a>
+  </div>
+</header>
+
+<main id="top">
+<!-- ================= HERO: the playground ================= -->
+<section class="hero" id="hero" aria-label="Try SwipeSpeak">
+  <div class="wrap">
+    <div class="freestrip">
+      <span class="fs free"><i>💸</i>100% free</span>
+      <span class="lc" id="lc"><span class="knob"></span><span data-m="local" class="on">💻 On your Mac</span><span data-m="cloud">☁️ Cloud</span></span>
+      <span class="fs"><i style="background:var(--mint)">🔒</i>no account</span>
+    </div>
+    <div class="play">
+      <!-- Read Aloud -->
+      <article class="card pcard read-card" id="readCard">
+        <span class="sticker s-pink">try me!</span>
+        <div class="head"><span class="label"><b>🔊</b>Select → hear it</span></div>
+        <div class="win">
+          <div class="winbar"><i></i><i></i><i></i><span>Notes</span></div>
+          <p class="readable" id="para" data-readable data-summary="octo">The octopus has three hearts and blue blood. Two hearts pump blood through the gills, while the third sends it to the rest of the body. When an octopus swims, that third heart stops beating, which is why these clever animals would rather crawl than swim.</p>
+        </div>
+        <div class="hint" id="hint" aria-live="polite">your turn: select some text</div>
+        <div class="ghost" id="ghost" aria-hidden="true"><svg viewBox="0 0 26 26"><path d="M3 2.5v18.2l4.6-4.3 3 6.6 3.2-1.4-3-6.5h6.4z" fill="#fff" stroke="#111" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+        <div class="bubble ghostb" id="gBubble" aria-hidden="true"><span class="zone speak">🔊</span><span class="zone sum">✨</span><span class="zone more">⇕</span></div>
+        <div class="chip ghostc" id="gChip" aria-hidden="true"><span class="eq"><i></i><i></i><i></i><i></i></span>Speaking…</div>
+        <div class="steps3" id="steps3"><span>① Select</span><span>② Glide onto 🔊</span><span>③ Listen</span></div>
+        <p class="foot">On your Mac it uses your Mac's Siri voice. Here it's your browser's voice.</p>
+      </article>
+
+      <!-- Dictation -->
+      <article class="card pcard talk-card" id="talkCard">
+        <span class="sticker s-yellow">hold me!</span>
+        <div class="head"><span class="label"><b style="background:var(--pink)">🎙️</b>Hold → say it</span><span class="demo-badge" id="demoBadge">demo voice</span></div>
+        <div class="win talk-win">
+          <div class="notch" id="notch" aria-hidden="true"><span class="dot"></span><span class="nw"><i style="--h:.6"></i><i style="--h:1;animation-delay:-.2s"></i><i style="--h:.8;animation-delay:-.45s"></i><i style="--h:1;animation-delay:-.1s"></i><i style="--h:.5;animation-delay:-.35s"></i><i style="--h:.9;animation-delay:-.55s"></i><i style="--h:.65;animation-delay:-.25s"></i></span><span class="nt" id="notchT">Listening</span></div>
+          <div class="winbar"><i></i><i></i><i></i><span>Messages</span></div>
+          <div class="chat" id="chat"><div class="msg in">Are you coming to dinner?</div></div>
+          <div class="msgrow">
+            <div class="msgbox" id="msgbox" tabindex="0" role="textbox" aria-label="Message. Hold Space or the talk key to dictate." aria-multiline="true"><span id="typed"></span><span class="live" id="live"></span><span class="caret" id="caret" hidden></span><span class="ph" id="ph">Hold the key and talk…</span></div>
+            <button class="send" id="send" disabled aria-label="Send">↑</button>
+          </div>
+        </div>
+        <div class="keyrow">
+          <button class="talkkey" id="talkKey" aria-label="Hold to talk"><span class="ring"></span><span class="kcap">fn</span><span class="kl" id="keyLabel">hold to talk<small id="keySub">or hold Space in the box</small></span></button>
+        </div>
+      </article>
+    </div>
+
+    <div class="hero-cta">
+      <a class="btn dl" href="https://github.com/lman80/SwipeSpeak-app/releases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg><span class="dl-label">Download SwipeSpeak</span></a>
+      <span class="req"><b>Free</b> · no account · macOS 14+ · Apple silicon</span>
+    </div>
+  </div>
+
+  <!-- real (page-level) bubble, chip and summary panel -->
+  <div class="bubble" id="bubble" role="toolbar" aria-label="Read Aloud bubble">
+    <button class="zone speak" data-z="speak" aria-label="Read aloud">🔊</button>
+    <button class="zone sum" data-z="sum" aria-label="Summary">✨</button>
+    <button class="zone more" data-z="more" aria-label="Select more">⇕</button>
+    <span class="tip" id="tip"></span>
+  </div>
+  <div class="chip" id="chip" role="status"><span class="eq"><i></i><i></i><i></i><i></i></span><span id="chipT">Speaking…</span><small id="chipS">shake to stop</small><button class="x" id="chipX" aria-label="Stop">✕</button></div>
+  <div class="sumpanel" id="sumpanel" role="dialog" aria-label="Summary">
+    <h4>✨ Summary <button id="sumX" aria-label="Close">✕</button></h4>
+    <ul id="sumList" data-readable></ul>
+    <p>Pre-written for this demo. In the app, a free Groq key writes it.</p>
+  </div>
+</section>
+
+
+<!-- ================= v6: FREE, LOCAL OR CLOUD ================= -->
+<section class="block" id="free" data-anim>
+  <div class="wrap">
+    <h2 class="sec"><small>The big one</small>Free. On your Mac or in the cloud.</h2>
+    <div class="fl">
+      <div class="card flc" id="flLocal"><div class="big">💻</div><h3>On your Mac</h3><ul><li>✈️ Works offline</li><li>🔒 Voice never leaves your Mac</li><li>🔑 No key needed</li></ul></div>
+      <div class="zero"><b>$0</b><span>either way</span></div>
+      <div class="card flc" id="flCloud"><div class="big">☁️</div><h3>Cloud</h3><ul><li>⚡️ Fastest transcription</li><li>🎁 Free Groq key</li><li>♾️ No SwipeSpeak word cap</li></ul></div>
+    </div>
+    <p class="flnote">Switch any time in Settings. Reading aloud always happens on your Mac.</p>
+  </div>
+</section>
+
+<!-- ================= v6: READS ANYTHING ================= -->
+<section class="block" id="reads" data-anim style="padding-top:20px">
+  <div class="wrap">
+    <h2 class="sec"><small>Read Aloud</small>Reads anything you can select</h2>
+    <div class="ra">
+      <div class="ra-tabs" id="raTabs">
+        <div class="ra-tab"><i>✉️</i>Email</div>
+        <div class="ra-tab"><i>📄</i>PDF</div>
+        <div class="ra-tab"><i>🌐</i>Web page</div>
+        <div class="ra-tab"><i>💬</i>Chat</div>
+      </div>
+      <div class="card ra-win"><div class="win" style="height:100%">
+        <div class="winbar"><i></i><i></i><i></i><span id="raTitle">Mail</span></div>
+        <div class="ra-doc" id="raDoc"></div>
+        <div class="ra-bub" id="raBub"><span id="raSpk">🔊</span><span>✨</span><span>⇕</span></div>
+        <div class="ra-chip" id="raChip"><span class="eq"><i></i><i></i><i></i></span>Speaking…</div>
+        <div class="ra-speed">speed <b id="raSpeed">1×</b></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= v6: VS WISPR FLOW (three options to choose from) ================= -->
+<section class="block" id="vs" data-anim style="padding-top:20px">
+  <div class="wrap">
+    <h2 class="sec"><small>SwipeSpeak vs Wispr Flow</small>Dictation, plus a voice that reads to you</h2>
+
+    <div class="opt"><span class="opt-tag">Option A · side by side</span>
+      <div class="card vs"><table>
+        <tr><th></th><th class="us">SwipeSpeak</th><th>Wispr Flow</th></tr>
+        <tr><td>Talk to type in any app</td><td class="us y">✓</td><td class="y">✓</td></tr>
+        <tr><td>Select text, hear it read aloud</td><td class="us y">✓</td><td class="n">✕</td></tr>
+        <tr><td>✨ Hear a summary instead</td><td class="us y">✓</td><td class="n">✕</td></tr>
+        <tr><td>Shake to stop, circle to skip</td><td class="us y">✓</td><td class="n">✕</td></tr>
+        <tr><td>Works offline, on your Mac</td><td class="us y">✓</td><td>Cloud only</td></tr>
+        <tr><td>Free words per week</td><td class="us"><b>No cap</b></td><td>2,000</td></tr>
+        <tr><td>Price</td><td class="us"><b>$0</b></td><td>$15/month for Pro</td></tr>
+      </table></div>
+    </div>
+
+    <div class="opt"><span class="opt-tag">Option B · the yearly bill</span>
+      <div class="card bill" id="bill">
+        <div class="bar them"><div class="who">Wispr Flow Pro</div><div class="track"><div class="fill">$144 / year</div></div></div>
+        <div class="bar us"><div class="who">SwipeSpeak</div><div class="track"><div class="fill">$0</div></div></div>
+        <div class="extra"><span>🔊 + reads to you</span><span>✨ + summaries</span><span>💻 + offline option</span></div>
+      </div>
+    </div>
+
+    <div class="opt"><span class="opt-tag">Option C · one way vs both ways</span>
+      <div class="way">
+        <div class="card them"><h3>Wispr Flow</h3><div class="flow">🗣️<div class="arr"><i class="t"></i><b></b></div>📝</div><p class="cap">You talk, it types.</p></div>
+        <div class="card us"><h3>SwipeSpeak</h3><div class="flow">🗣️<div class="arr"><i class="t"></i><i class="b"></i><b></b><b class="back"></b></div>📝</div><p class="cap">You talk, it types.<br>You select, it talks back.</p></div>
+      </div>
+    </div>
+    <p class="src">Wispr Flow is a good dictation app. Its details are from wisprflow.ai/pricing (September 2026): free plan 2,000 words a week on desktop, Pro $15 a month or $12 a month billed yearly. Its help docs say transcription always happens in the cloud.</p>
+  </div>
+</section>
+
+<!-- ================= GESTURES ================= -->
+<section class="block" id="gestures" data-anim>
+  <div class="wrap">
+    <h2 class="sec"><small>Read Aloud</small>Little moves, big help</h2>
+    <div class="g3">
+      <div class="card gcard">
+        <div class="stage g-scroll" aria-hidden="true">
+          <i class="selbar sb1"></i><i class="selbar sb2"></i><i class="selbar sb3"></i>
+          <i class="ln s1"></i><i class="ln s2"></i><i class="ln s3"></i><i class="ln s4"></i>
+          <div class="mouse"></div>
+          <div class="mini-bubble"><span>🔊</span><span>✨</span><span class="on">⇕</span></div>
+        </div>
+        <h3>Scroll <span>→</span> select more</h3>
+      </div>
+      <div class="card gcard">
+        <div class="stage g-shake" aria-hidden="true">
+          <div class="spk-big">🔊<span class="wv"><i></i><i></i></span></div>
+          <span class="stopb">stop ✋</span>
+          <svg class="mini-cursor" viewBox="0 0 26 26"><path d="M3 2.5v18.2l4.6-4.3 3 6.6 3.2-1.4-3-6.5h6.4z" fill="#fff" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Shake <span>→</span> stop</h3>
+      </div>
+      <div class="card gcard">
+        <div class="stage g-circle" aria-hidden="true">
+          <i class="hl"></i>
+          <i class="ln c1"></i><i class="ln c2"></i><i class="ln c3"></i>
+          <div class="orbit"><div class="arm"><svg class="mini-cursor" viewBox="0 0 26 26"><path d="M3 2.5v18.2l4.6-4.3 3 6.6 3.2-1.4-3-6.5h6.4z" fill="#fff" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/></svg></div></div>
+        </div>
+        <h3>Circle <span>→</span> skip a sentence</h3>
+        <p>↻ next · ↺ back</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CLEANUP + SPEED ================= -->
+<section class="block" id="dictation" data-anim style="padding-top:20px">
+  <div class="wrap">
+    <h2 class="sec"><small>Dictation</small>Talk. It types.</h2>
+    <div class="two">
+      <div class="card clean">
+        <div class="row"><span class="tagx t-said">you say</span>
+          <p class="messy">“<s>Um</s> so I think we should, <s>uh</s>, move the meeting to <s>like</s> Thursday <s>uh</s> afternoon <s>you know</s>”</p></div>
+        <div class="arrowdown" aria-hidden="true">↓</div>
+        <div class="row"><span class="tagx t-got">it types</span>
+          <p class="cleantext" data-readable data-summary="meet" id="cleanText"><span class="fresh">I think we should move the meeting to Thursday afternoon.</span></p></div>
+        <p class="note">Optional AI cleanup. Say “new line” or “bullet point” and it formats.</p>
+      </div>
+      <div class="card speed" id="speed">
+        <h3>Speak <em>~4× faster</em><br>than you type</h3>
+        <div class="lane type"><div class="top">⌨️ Typing <span class="n" id="nType">0 wpm</span></div><div class="track"><div class="fill" id="fType"></div></div><div class="txt" id="tType"></div></div>
+        <div class="lane talk"><div class="top">🎙️ Speaking <span class="n" id="nTalk">0 wpm</span></div><div class="track"><div class="fill" id="fTalk"></div></div><div class="txt" id="tTalk"></div></div>
+        <p class="foot" style="text-align:left;margin:0">Typical rates: ~40 words/min typing, ~150 speaking.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= APPS ================= -->
+<section class="block" id="apps" data-anim>
+  <h2 class="sec wrap"><small>Both features</small>Works in every app</h2>
+  <div class="marquee"><div class="mtrack" id="mq1"></div></div>
+  <div class="marquee rev"><div class="mtrack" id="mq2"></div></div>
+  <p class="apps-cap wrap">Anywhere you can type or select text.</p>
+</section>
+
+<!-- ================= TRUST ================= -->
+<section class="block" style="padding-top:10px">
+  <div class="wrap">
+    <div class="strip">
+      <span class="pill"><b style="background:var(--mint)">💸</b>Free</span>
+      <span class="pill"><b style="background:var(--sky)">🙅</b>No account</span>
+      <span class="pill"><b style="background:var(--lav)">🔒</b>No SwipeSpeak server</span>
+      <span class="pill"><b style="background:var(--butter)">✈️</b>Offline dictation</span>
+      <span class="pill"><b style="background:var(--pink)">🖥️</b>Reads on your Mac</span>
+    </div>
+    <p class="strip-cap">Cloud dictation and ✨ summaries go straight to Groq with your own free key. Everything else stays on your Mac.</p>
+  </div>
+</section>
+
+<!-- ================= INSTALL ================= -->
+<section class="block" id="install" data-anim>
+  <div class="wrap">
+    <h2 class="sec"><small>Install</small>Three steps</h2>
+    <div class="steps">
+      <div class="card step"><span class="num">1</span>
+        <div class="vis"><div class="zipvis"><img src="../../assets/icon.png" alt=""><span class="arr">→</span><span class="appsf">Apps</span></div></div>
+        <h3>Download</h3><p>Unzip, drag to Applications</p></div>
+      <div class="card step"><span class="num">2</span>
+        <div class="vis"><div class="settings"><div class="row1">Privacy &amp; Security</div><div class="row2"><span>“SwipeSpeak” was blocked…</span><span class="oa">Open Anyway</span></div></div></div>
+        <h3>Open Anyway</h3><p>Once. It's not from the App Store.</p></div>
+      <div class="card step"><span class="num">3</span>
+        <div class="vis"><div class="checks"><div><i>✓</i>Accessibility</div><div><i>✓</i>Microphone</div><div><i>✓</i>Speak Selection</div></div></div>
+        <h3>Follow the guide</h3><p>It sets up everything</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FAQ ================= -->
+<section class="block" id="faq" style="padding-top:20px">
+  <div class="wrap">
+    <h2 class="sec"><small>Questions</small>Quick answers</h2>
+    <div class="faq">
+      <details><summary>Is it really free?</summary><p>Yes. No account, no subscription, no ads.</p></details>
+      <details><summary>Which Macs?</summary><p>macOS 14 Sonoma or later on Apple silicon (M1 or later).</p></details>
+      <details><summary>Why “Open Anyway”?</summary><p>SwipeSpeak isn't on the App Store, so the first time you open it macOS asks. Go to System Settings › Privacy &amp; Security and click <b>Open Anyway</b>. You only do this once.</p></details>
+      <details><summary>Do I need a key?</summary><p>Reading aloud and offline dictation need nothing. Fast cloud dictation and ✨ summaries use a free Groq key from <code>console.groq.com/keys</code>; the Setup Guide shows you how.</p></details>
+      <details><summary>What voice reads to me?</summary><p>Your Mac's own Spoken Content voice (the Siri voices), at the speed you set in System Settings.</p></details>
+      <details><summary>Does my text leave my Mac?</summary><p>Reading aloud happens on your Mac. Text only leaves for ✨ summaries, and audio only for cloud dictation, straight to Groq. There's no SwipeSpeak server. Offline mode keeps dictation on your Mac too.</p></details>
+      <details><summary>What else can Dictation do?</summary><p>Spoken formatting (“new line”, “bullet point”), Edit Mode (select text and say how to change it), modes per app, it learns your words, Paste Again, meeting recording, audio-file transcription and a history.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FINAL ================= -->
+<section class="block" style="padding-top:20px" data-anim>
+  <div class="wrap">
+    <div class="card final">
+      <span class="spark" style="left:12%;top:22%">✨</span><span class="spark" style="right:14%;top:18%;animation-delay:-1s">⭐️</span><span class="spark" style="left:20%;bottom:18%;animation-delay:-1.7s">💬</span><span class="spark" style="right:18%;bottom:22%;animation-delay:-.5s">🔊</span>
+      <img src="../../assets/icon.png" alt="SwipeSpeak app icon" width="120" height="120">
+      <h2>Get SwipeSpeak</h2>
+      <a class="btn dl" href="https://github.com/lman80/SwipeSpeak-app/releases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg><span class="dl-label">Download SwipeSpeak</span></a>
+      <p class="req"><b>Free</b> · macOS 14 or later · Apple silicon (M1 or later)</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap">SwipeSpeak · a free Mac menu bar app · <a href="https://github.com/lman80/SwipeSpeak-app/releases">Releases on GitHub</a></div></footer>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TOUCH = matchMedia('(hover: none)').matches;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+/* ---------------- downloads ---------------- */
+const RELEASES = 'https://github.com/lman80/SwipeSpeak-app/releases';
+function setDownloads(href, label, ok) {
+  document.querySelectorAll('a.dl').forEach(a => {
+    a.href = href;
+    a.querySelector('.dl-label').textContent = label;
+    a.classList.toggle('soon', !ok);
+  });
+}
+fetch('https://api.github.com/repos/lman80/SwipeSpeak-app/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+  .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(j => {
+    const asset = (j.assets || []).find(a => /\.(zip|dmg)$/i.test(a.name));
+    if (!asset) throw 0;
+    const v = String(j.tag_name || j.name || '').replace(/^v/i, '');
+    setDownloads(asset.browser_download_url, ('Download SwipeSpeak ' + v).trim(), true);
+  })
+  .catch(() => setDownloads(RELEASES, 'Coming soon', false));
+
+/* ---------------- tokenise readable text into word spans ---------------- */
+function tokenize(el) {
+  const text = el.textContent;
+  el.textContent = '';
+  text.split(/(\s+)/).forEach(part => {
+    if (!part) return;
+    if (/^\s+$/.test(part)) { el.appendChild(document.createTextNode(' ')); return; }
+    const s = document.createElement('span');
+    s.className = 'w'; s.textContent = part; el.appendChild(s);
+  });
+}
+const para = $('#para');
+tokenize(para);
+tokenize($('#cleanText .fresh'));
+const paraWords = [...para.querySelectorAll('.w')];
+
+const SUMMARIES = {
+  octo: ['Octopuses have three hearts and blue blood.', 'Two hearts serve the gills, one serves the body.', 'Swimming stops that heart, so they prefer to crawl.'],
+  meet: ['Move the meeting.', 'New time: Thursday afternoon.', 'Cleanup removed the ums and uhs.']
+};
+
+/* ---------------- visibility (pause off screen) ---------------- */
+let heroVisible = true;
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.target.id === 'hero') { heroVisible = e.isIntersecting; if (heroVisible) ghostResume(); }
+    else if (e.target.id === 'speed') { speedVisible = e.isIntersecting; if (speedVisible) speedStart(); }
+    else e.target.classList.toggle('off', !e.isIntersecting);
+  });
+}, { rootMargin: '80px' });
+document.querySelectorAll('[data-anim]').forEach(s => io.observe(s));
+
+/* ---------------- confetti ---------------- */
+const COLORS = ['#2f7bff', '#ff5d8f', '#ffc13b', '#43d19a', '#a55bff', '#5ad1ff'];
+function confetti(x, y, n = 16) {
+  if (RM) return;
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement('i');
+    c.className = 'confetti';
+    c.style.background = COLORS[i % COLORS.length];
+    if (i % 3 === 0) c.style.borderRadius = '50%';
+    document.body.appendChild(c);
+    const a = Math.random() * Math.PI * 2, d = 40 + Math.random() * 70;
+    const dx = Math.cos(a) * d, dy = Math.sin(a) * d - 40;
+    c.animate([
+      { transform: `translate(${x}px,${y}px) scale(1) rotate(0)`, opacity: 1 },
+      { transform: `translate(${x + dx}px,${y + dy + 60}px) scale(.6) rotate(${Math.random() * 540}deg)`, opacity: 0 }
+    ], { duration: 800 + Math.random() * 400, easing: 'cubic-bezier(.2,.7,.4,1)' }).onfinish = () => c.remove();
+  }
+}
+
+/* ================= SPEECH (read aloud with word highlighting) ================= */
+const chip = $('#chip'), chipT = $('#chipT'), chipS = $('#chipS');
+const synth = window.speechSynthesis;
+let session = null, sessionId = 0;
+let enVoice = null;
+function pickVoice() {
+  if (!synth) return;
+  const vs = synth.getVoices();
+  const lang = (navigator.language || 'en-US').slice(0, 2);
+  enVoice = vs.find(v => v.localService && v.lang.startsWith(lang) && /Samantha|Ava|Allison|Susan|Karen|Daniel/.test(v.name))
+    || vs.find(v => v.localService && v.lang.startsWith('en'))
+    || vs.find(v => v.lang.startsWith('en')) || null;
+}
+if (synth) { pickVoice(); synth.addEventListener && synth.addEventListener('voiceschanged', pickVoice); }
+
+function placeChip(x, y) {
+  const w = chip.offsetWidth || 220, h = chip.offsetHeight || 42;
+  chip.style.left = clamp(x, 8, innerWidth - w - 8) + 'px';
+  chip.style.top = clamp(y, 8, innerHeight - h - 8) + 'px';
+}
+function markSpk(s, i) {
+  if (i === s.idx) return;
+  for (let k = Math.max(0, s.idx); k < Math.min(i, s.spans.length); k++) { s.spans[k].classList.remove('spk'); s.spans[k].classList.add('said'); }
+  s.idx = i;
+  if (i < s.spans.length) s.spans[i].classList.add('spk');
+}
+function clearWords(spans) { spans.forEach(w => w.classList.remove('spk', 'said', 'gsel', 'glast')); }
+
+function speakWords(spans, fallbackText, at) {
+  stopSpeech(false);
+  const id = ++sessionId;
+  const offsets = []; let text = '';
+  spans.forEach((w, i) => { if (i) text += ' '; offsets.push(text.length); text += w.textContent; });
+  if (!spans.length) text = fallbackText || '';
+  if (!text.trim()) return;
+  spans.forEach((w, i) => { w.classList.add('gsel'); w.classList.toggle('glast', i === spans.length - 1); });
+  const s = session = { id, spans, offsets, idx: -1, boundary: false, t0: performance.now(), timer: 0, done: false, utter: null };
+  chip.classList.remove('stopped'); chipT.textContent = 'Speaking…'; chipS.textContent = TOUCH ? '' : 'shake to stop';
+  placeChip(at.x, at.y); chip.classList.add('show');
+  shakeReset();
+  let audible = false;
+  if (synth && window.SpeechSynthesisUtterance) {
+    try {
+      synth.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      if (enVoice) u.voice = enVoice;
+      u.rate = 1;
+      u.onstart = () => { if (session === s) s.t0 = performance.now(); };
+      u.onboundary = e => {
+        if (session !== s || (e.name && e.name !== 'word')) return;
+        s.boundary = true;
+        let i = 0; while (i + 1 < offsets.length && offsets[i + 1] <= e.charIndex) i++;
+        if (spans.length) markSpk(s, i);
+      };
+      u.onend = () => { if (session === s) finishSpeech(s, false); };
+      u.onerror = e => { if (session === s && e.error !== 'interrupted' && e.error !== 'canceled') s.silent = true; };
+      s.utter = u;
+      synth.speak(u);
+      audible = true;
+      if (synth.paused) synth.resume();
+    } catch (err) { audible = false; }
+  }
+  if (!audible) s.silent = true;
+  // Fallback: timed highlighting when boundary events don't arrive (or no voice at all).
+  const wps = 2.6;
+  s.timer = setInterval(() => {
+    if (session !== s) return clearInterval(s.timer);
+    const el = (performance.now() - s.t0) / 1000;
+    if (!s.boundary && el > .55) {
+      const i = Math.floor((el - .55) * wps);
+      if (spans.length) markSpk(s, Math.min(i, spans.length - 1));
+      const total = (spans.length || text.split(/\s+/).length) / wps + .9;
+      const stillTalking = !s.silent && synth && synth.speaking;
+      if (el > total && !stillTalking) finishSpeech(s, false);
+      if (el > total * 2.5 + 4) finishSpeech(s, false); // hard safety net
+    } else if (s.silent && el > 30) finishSpeech(s, false);
+  }, 80);
+}
+function finishSpeech(s, stopped) {
+  if (!s || s.done) return;
+  s.done = true;
+  clearInterval(s.timer);
+  if (session === s) session = null;
+  if (stopped) {
+    chip.classList.add('stopped'); chipT.textContent = 'Stopped ✋'; chipS.textContent = '';
+  }
+  setTimeout(() => { if (!session) chip.classList.remove('show'); }, stopped ? 900 : 350);
+  setTimeout(() => clearWords(s.spans), stopped ? 500 : 900);
+  onSpeechEnded();
+}
+function stopSpeech(stopped = true) {
+  if (!session) return;
+  const s = session;
+  if (synth) try { synth.cancel(); } catch (e) {}
+  finishSpeech(s, stopped);
+}
+$('#chipX').addEventListener('click', () => stopSpeech(true));
+document.addEventListener('visibilitychange', () => { if (document.hidden) { stopSpeech(false); talkAbort(); } });
+addEventListener('pagehide', () => { if (synth) synth.cancel(); talkAbort(); });
+
+/* shake detection: rapid left-right reversals while speaking */
+let shk = { dir: 0, run: 0, lastX: null, rev: [] };
+function shakeReset() { shk = { dir: 0, run: 0, lastX: null, rev: [] }; }
+function shakeFeed(x, t) {
+  if (!session) return;
+  if (shk.lastX === null) { shk.lastX = x; return; }
+  const dx = x - shk.lastX; shk.lastX = x;
+  if (Math.abs(dx) < 1.5) return;
+  const d = Math.sign(dx);
+  if (d === shk.dir) { shk.run += Math.abs(dx); return; }
+  if (shk.dir !== 0 && shk.run > 22) shk.rev.push(t);
+  shk.dir = d; shk.run = Math.abs(dx);
+  shk.rev = shk.rev.filter(r => t - r < 900);
+  if (shk.rev.length >= 4) { shakeReset(); stopSpeech(true); }
+}
+
+/* ================= THE BUBBLE (real selection) ================= */
+const bubble = $('#bubble'), tip = $('#tip'), panel = $('#sumpanel');
+let bub = null;            // { spans, text, summary, x, y, scrollY }
+let dwellT = 0, lastWheel = 0;
+let down = null;           // mousedown point
+let lastMoves = [];        // recent pointer points for direction
+let userSelectedOnce = false;
+
+function readableOf(node) {
+  const el = node && (node.nodeType === 1 ? node : node.parentElement);
+  return el ? el.closest('[data-readable]') : null;
+}
+function currentSelection() {
+  const sel = getSelection();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+  const text = sel.toString().trim();
+  if (text.length < 2) return null;
+  const range = sel.getRangeAt(0);
+  const root = readableOf(range.commonAncestorContainer) || readableOf(range.startContainer);
+  if (!root || !root.contains(range.endContainer)) return null;
+  const spans = [...root.querySelectorAll('.w')].filter(w => {
+    if (!range.intersectsNode(w.firstChild)) return false;
+    if (range.endContainer === w.firstChild && range.endOffset === 0) return false;
+    if (range.startContainer === w.firstChild && range.startOffset >= w.firstChild.length) return false;
+    return true;
+  });
+  const sumKey = (root.dataset.summary) || (root.closest('[data-summary]') || {}).dataset?.summary || 'octo';
+  return { spans, text, root, range, summary: sumKey };
+}
+
+function showBubbleAt(x, y, dirX, dirY, info) {
+  hideTip();
+  bub = Object.assign({}, info, { x, y, scrollY: scrollY });
+  const W = bubble.offsetWidth || 160, H = bubble.offsetHeight || 48;
+  // ahead of the pointer, in the direction it was travelling
+  let left = dirX >= 0 ? x + 16 : x - 16 - W;
+  let top = y - H / 2 + clamp(dirY, -1, 1) * 10;
+  if (left + W > innerWidth - 8) left = x - 16 - W;
+  if (left < 8) left = Math.min(x + 16, innerWidth - W - 8);
+  top = clamp(top, 70, innerHeight - H - 8);
+  bubble.classList.toggle('left', left < x);
+  bubble.style.left = left + 'px'; bubble.style.top = top + 'px';
+  bubble.classList.remove('show'); void bubble.offsetWidth; bubble.classList.add('show');
+  setHint(TOUCH ? 'tap 🔊 to hear it' : 'now glide onto 🔊');
+  logUsage('bubble');
+}
+function hideBubble() {
+  bubble.classList.remove('show');
+  bubble.querySelectorAll('.zone').forEach(z => z.classList.remove('dwell', 'hot'));
+  clearTimeout(dwellT); hideTip();
+  bub = null;
+}
+function showTip(t) { tip.textContent = t; tip.classList.add('on'); }
+function hideTip() { tip.classList.remove('on'); }
+
+function activate(z) {
+  if (!bub) return;
+  const r = bubble.getBoundingClientRect();
+  const info = bub;
+  if (z === 'more') { extendSelection(1, 'sentence'); return; }
+  hideBubble();
+  try { getSelection().removeAllRanges(); } catch (e) {}
+  if (z === 'speak') {
+    speakWords(info.spans, info.text, { x: r.left, y: r.top });
+    setHint(TOUCH ? '' : 'shake the mouse to stop', 2600);
+  } else if (z === 'sum') {
+    openSummary(info.summary, r);
+  }
+}
+function extendSelection(dir, unit) {
+  const sel = getSelection();
+  if (!sel || sel.isCollapsed || !sel.modify) return;
+  try { sel.modify('extend', dir > 0 ? 'forward' : 'backward', unit); }
+  catch (e) { for (let i = 0; i < 4; i++) sel.modify('extend', dir > 0 ? 'forward' : 'backward', 'word'); }
+  const info = currentSelection();
+  if (info && bub) Object.assign(bub, { spans: info.spans, text: info.text, summary: info.summary });
+  else if (!info) hideBubble();
+}
+
+bubble.addEventListener('mousedown', e => e.preventDefault());   // keep the selection
+bubble.querySelectorAll('.zone').forEach(z => {
+  const kind = z.dataset.z;
+  z.addEventListener('pointerenter', e => {
+    if (e.pointerType !== 'mouse') return;
+    if (kind === 'more') { showTip('scroll here to select more'); z.classList.add('hot'); return; }
+    showTip(kind === 'speak' ? 'read aloud' : 'summary');
+    z.classList.add('dwell');
+    clearTimeout(dwellT);
+    dwellT = setTimeout(() => activate(kind), 150);   // rest ~0.15 s, like the app
+  });
+  z.addEventListener('pointerleave', () => { z.classList.remove('dwell', 'hot'); clearTimeout(dwellT); hideTip(); });
+  z.addEventListener('click', e => { e.preventDefault(); clearTimeout(dwellT); activate(kind); });
+});
+bubble.addEventListener('wheel', e => {
+  e.preventDefault();
+  const now = performance.now();
+  if (now - lastWheel < 110) return;
+  lastWheel = now;
+  extendSelection(e.deltaY > 0 ? 1 : -1, 'word');
+}, { passive: false });
+
+/* summary panel */
+const sumList = $('#sumList');
+function openSummary(key, r) {
+  stopSpeech(false);
+  sumList.innerHTML = '';
+  (SUMMARIES[key] || SUMMARIES.octo).forEach(t => { const li = document.createElement('li'); li.textContent = t; tokenize(li); sumList.appendChild(li); });
+  const W = Math.min(340, innerWidth - 24);
+  panel.style.left = clamp(r.left - 10, 12, innerWidth - W - 12) + 'px';
+  const ph = 230;
+  panel.style.top = (r.bottom + 12 + ph < innerHeight ? r.bottom + 12 : clamp(r.top - ph - 12, 70, innerHeight - ph)) + 'px';
+  panel.classList.remove('show'); void panel.offsetWidth; panel.classList.add('show');
+  const pr = panel.getBoundingClientRect();
+  setTimeout(() => speakWords([...sumList.querySelectorAll('.w')], '', { x: pr.left + 12, y: pr.top - 50 }), 250);
+  const cr = panel.getBoundingClientRect();
+  confetti(cr.left + 30, cr.top + 20, 10);
+  logUsage('summary');
+}
+function closeSummary() { if (panel.classList.contains('show')) { panel.classList.remove('show'); if (session && sumList.contains(session.spans[0])) stopSpeech(false); } }
+$('#sumX').addEventListener('click', closeSummary);
+
+/* pointer tracking */
+addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse') down = { x: e.clientX, y: e.clientY };
+  const t = e.target;
+  if (!bubble.contains(t)) hideBubble();
+  if (!panel.contains(t) && !bubble.contains(t)) closeSummary();
+}, true);
+addEventListener('pointermove', e => {
+  const now = performance.now();
+  lastMoves.push({ x: e.clientX, y: e.clientY, t: now });
+  if (lastMoves.length > 12) lastMoves.shift();
+  if (e.pointerType === 'mouse') { shakeFeed(e.clientX, now); userMouseMoved(e); }
+}, { passive: true });
+addEventListener('mouseup', e => {
+  if (bubble.contains(e.target) || panel.contains(e.target)) return;
+  const x = e.clientX, y = e.clientY, start = down;
+  setTimeout(() => {
+    const info = currentSelection();
+    if (!info) return;
+    stopGhost(true);
+    let dx = start ? x - start.x : 1, dy = start ? y - start.y : 0;
+    if (Math.abs(dx) < 4 && lastMoves.length > 2) { const a = lastMoves[0], b = lastMoves[lastMoves.length - 1]; dx = b.x - a.x; dy = b.y - a.y; }
+    const len = Math.hypot(dx, dy) || 1;
+    userSelectedOnce = true;
+    showBubbleAt(x, y, dx / len >= -0.2 ? 1 : -1, dy / len, info);
+  }, 10);
+});
+/* touch: show the bubble once a selection change settles */
+let selT = 0, lastPointerType = 'mouse';
+addEventListener('pointerdown', e => { lastPointerType = e.pointerType; }, { passive: true });
+addEventListener('touchstart', () => { lastPointerType = 'touch'; stopGhost(true); }, { passive: true });
+document.addEventListener('selectionchange', () => {
+  const sel = getSelection();
+  if (bub && (!sel || sel.isCollapsed)) { hideBubble(); }
+  if (lastPointerType === 'mouse') return;
+  clearTimeout(selT);
+  selT = setTimeout(() => {
+    const info = currentSelection();
+    if (!info) return;
+    const rects = info.range.getClientRects();
+    const last = rects[rects.length - 1] || info.range.getBoundingClientRect();
+    userSelectedOnce = true;
+    // below the selection's end so the system's own callout (above) doesn't cover it
+    showBubbleAt(last.right - 20, last.bottom + 34, 1, 0, info);
+  }, 650);
+});
+addEventListener('keydown', e => { if (e.key === 'Escape') { hideBubble(); closeSummary(); stopSpeech(false); } });
+addEventListener('scroll', () => { if (bub && Math.abs(scrollY - bub.scrollY) > 60) hideBubble(); }, { passive: true });
+addEventListener('resize', () => { hideBubble(); }, { passive: true });
+
+/* ================= HINT ================= */
+const hint = $('#hint');
+let hintT = 0;
+function setHint(text, ms) {
+  clearTimeout(hintT);
+  if (!text) { hint.classList.remove('on'); return; }
+  hint.textContent = text; hint.classList.add('on');
+  if (ms) hintT = setTimeout(() => hint.classList.remove('on'), ms);
+}
+function onSpeechEnded() {
+  if (userSelectedOnce && !ghost.running) setHint('now try ✨ or ⇕', 3200);
+}
+
+/* ================= GHOST DEMO ================= */
+const card = $('#readCard'), gEl = $('#ghost'), gB = $('#gBubble'), gC = $('#gChip');
+const gSpeakZone = gB.querySelector('.speak');
+const ghost = { running: false, raf: 0, el: 0, last: 0, cycle: 0, selN: -1, spk: -1, pos: null, stopAt: 0 };
+const sentences = [];
+const SPW = 420; // ms per spoken word in the ghost demo
+const steps3 = [...document.querySelectorAll('#steps3 span')];
+function ghostStep(i) { steps3.forEach((s, j) => { s.classList.toggle('on', j === i); s.classList.toggle('done', i >= 0 && j < i); }); }
+{ let a = 0; paraWords.forEach((w, i) => { if (/[.!?]$/.test(w.textContent)) { sentences.push([a, i]); a = i + 1; } }); }
+function wb(i, c) { const r = paraWords[i].getBoundingClientRect(); return { l: r.left - c.left, r: r.right - c.left, t: r.top - c.top, h: r.height }; }
+function ghostPlan() {
+  const [a, b] = sentences[ghost.cycle % 2 ? sentences.length - 1 : 0];
+  const n = b - a + 1;
+  const T = { move: 1300, press: 450, drag: n * 170, pause: 700, glide: 1100, dwell: 500, speak: n * SPW, hold: 900, away: 1000, gap: 1300 };
+  let acc = 0; const at = {};
+  for (const k in T) { at[k] = acc; acc += T[k]; }
+  return { a, b, n, T, at, total: acc };
+}
+function setGhostSel(a, b, count, spkIdx) {
+  for (let i = a; i <= b; i++) {
+    const w = paraWords[i], on = i < a + count;
+    w.classList.toggle('gsel', on);
+    w.classList.toggle('glast', on && i === a + count - 1);
+    w.classList.toggle('spk', i === spkIdx);
+    w.classList.toggle('said', spkIdx >= 0 && i < spkIdx);
+  }
+}
+function ghostFrame(now) {
+  if (!ghost.running) return;
+  ghost.raf = requestAnimationFrame(ghostFrame);
+  if (!heroVisible) { ghost.raf = 0; cancelAnimationFrame(ghost.raf); return; }
+  const dt = Math.min(50, now - (ghost.last || now)); ghost.last = now;
+  ghost.el += dt;
+  const P = ghostPlan();
+  if (ghost.pauseUntil && now < ghost.pauseUntil) { ghost.el = 0; return; }
+  if (ghost.pauseUntil) { ghost.pauseUntil = 0; gEl.classList.remove('gone'); setHint(''); }
+  if (ghost.el >= P.total) { ghost.el = 0; ghost.cycle++; setGhostSel(0, paraWords.length - 1, 0, -1); ghostStep(-1);
+    if (ghost.cycle % 2 === 0) { ghost.pauseUntil = now + 7000; gEl.classList.add('gone'); setHint('your turn: select any sentence'); }
+    return; }
+  const c = card.getBoundingClientRect();
+  const cw = c.width, ch = c.height, e = ghost.el, { a, b, n, T, at } = P;
+  const rest = { x: cw * .86, y: ch * .72 };
+  const s0 = wb(a, c), S = { x: s0.l - 1, y: s0.t + s0.h * .62 };
+  const endOf = i => { const q = wb(i, c); return { x: q.r + 1, y: q.t + q.h * .62 }; };
+  const E = endOf(b);
+  const W = gB.offsetWidth || 150, H = gB.offsetHeight || 48;
+  let bx = E.x + 16, by = E.y - H / 2;
+  let flip = false;
+  if (bx + W > cw - 10) { bx = E.x - 16 - W; flip = true; }
+  const SPK = { x: bx + 24, y: by + H / 2 + 4 };
+  let pos, count = 0, spk = -1, bubbleOn = false, hot = false, chipOn = false, press = false;
+  if (e < at.press) { pos = { x: lerp(rest.x, S.x, ease(e / T.move)), y: lerp(rest.y, S.y, ease(e / T.move)) }; }
+  else if (e < at.drag) { pos = S; press = true; }
+  else if (e < at.pause) {
+    press = true;
+    const f = (e - at.drag) / T.drag * n, i = Math.min(n - 1, Math.floor(f)), fr = f - i;
+    const from = i === 0 ? S : endOf(a + i - 1), to = endOf(a + i);
+    pos = { x: lerp(from.x, to.x, fr), y: lerp(from.y, to.y, fr) };
+    count = Math.min(n, i + (fr > .35 ? 1 : 0));
+  } else if (e < at.glide) { pos = E; count = n; bubbleOn = true; }
+  else if (e < at.dwell) { const t = ease((e - at.glide) / T.glide); pos = { x: lerp(E.x, SPK.x, t), y: lerp(E.y, SPK.y, t) }; count = n; bubbleOn = true; }
+  else if (e < at.speak) { pos = SPK; count = n; bubbleOn = true; hot = true; }
+  else if (e < at.hold) { pos = SPK; count = n; chipOn = true; spk = a + Math.min(n - 1, Math.floor((e - at.speak) / SPW)); }
+  else if (e < at.away) { pos = SPK; count = n; spk = -1; }
+  else if (e < at.gap) { const t = ease((e - at.away) / T.away); pos = { x: lerp(SPK.x, rest.x, t), y: lerp(SPK.y, rest.y, t) }; }
+  else pos = rest;
+  ghost.pos = pos;
+  ghostStep(e < at.pause ? 0 : e < at.speak ? 1 : e < at.away ? 2 : -1);
+  gEl.style.transform = `translate(${pos.x - 2}px,${pos.y - 2}px)`;
+  gEl.classList.toggle('press', press);
+  if (count !== ghost.selN || spk !== ghost.spk) { setGhostSel(a, b, count, spk); ghost.selN = count; ghost.spk = spk; }
+  if (bubbleOn) { gB.style.left = bx + 'px'; gB.style.top = by + 'px'; gB.classList.toggle('left', flip); }
+  gB.classList.toggle('show', bubbleOn);
+  gSpeakZone.classList.toggle('hot', hot);
+  if (chipOn) { gC.style.left = clamp(bx - 10, 8, cw - 150) + 'px'; gC.style.top = by + 'px'; }
+  gC.classList.toggle('show', chipOn);
+}
+function startGhost() {
+  if (ghost.running || session || bub) return;
+  ghost.running = true; ghost.el = 0; ghost.last = 0; ghost.selN = -1; ghost.spk = -1;
+  gEl.classList.remove('gone');
+  setHint('');
+  if (RM) { ghostStatic(); return; }
+  ghost.raf = requestAnimationFrame(ghostFrame);
+}
+function ghostResume() { if (ghost.running && !RM && !ghost.raf) { ghost.last = 0; ghost.raf = requestAnimationFrame(ghostFrame); } }
+function ghostStatic() {  // reduced motion: one still frame of the idea
+  const c = card.getBoundingClientRect(), [a, b] = sentences[0];
+  setGhostSel(a, b, b - a + 1, -1);
+  const q = wb(b, c);
+  const W = gB.offsetWidth || 150, H = gB.offsetHeight || 48;
+  let bx = q.r + 16; if (bx + W > c.width - 10) bx = q.r - 16 - W;
+  const by = q.t + q.h * .62 - H / 2;
+  gB.style.left = bx + 'px'; gB.style.top = by + 'px'; gB.classList.add('show');
+  gEl.style.transform = `translate(${bx + 22}px,${by + H / 2 + 2}px)`;
+}
+function stopGhost(silent) {
+  if (!ghost.running) return;
+  ghost.running = false; cancelAnimationFrame(ghost.raf); ghost.raf = 0;
+  ghost.stopAt = performance.now();
+  if (!session) setGhostSel(0, paraWords.length - 1, 0, -1);
+  gB.classList.remove('show'); gC.classList.remove('show'); gSpeakZone.classList.remove('hot');
+  gEl.classList.remove('press');
+  // step aside toward the hint, then fade
+  if (ghost.pos && !RM) {
+    const c = card.getBoundingClientRect();
+    gEl.animate([{ transform: gEl.style.transform, opacity: 1 }, { transform: `translate(${c.width - 60}px,${60}px) scale(.8)`, opacity: 0 }], { duration: 600, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'forwards' }).onfinish = a => { gEl.classList.add('gone'); a.target && a.target.cancel && a.target.cancel(); };
+  } else gEl.classList.add('gone');
+  if (!silent || !userSelectedOnce) setHint(TOUCH ? 'your turn: long-press a word' : 'your turn: select some text', 6000);
+}
+let lastActivity = performance.now(), moveAcc = 0, lastMX = null, lastMY = null;
+function userMouseMoved(e) {
+  lastActivity = performance.now();
+  if (lastMX !== null) moveAcc += Math.abs(e.clientX - lastMX) + Math.abs(e.clientY - lastMY);
+  lastMX = e.clientX; lastMY = e.clientY;
+  if (ghost.running && moveAcc > 30) stopGhost(false);
+}
+addEventListener('keydown', () => { lastActivity = performance.now(); });
+setInterval(() => {  // bring the ghost back after a quiet spell
+  if (!ghost.running && heroVisible && !session && !bub && !talk.state && !panel.classList.contains('show')
+      && performance.now() - lastActivity > 16000 && performance.now() - ghost.stopAt > 16000
+      && getSelection().isCollapsed) { moveAcc = 0; startGhost(); }
+}, 2000);
+
+/* ================= DICTATION TRY-IT ================= */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const key = $('#talkKey'), notch = $('#notch'), notchT = $('#notchT'), msgbox = $('#msgbox');
+const typedEl = $('#typed'), liveEl = $('#live'), caret = $('#caret'), ph = $('#ph'), sendB = $('#send');
+const keyLabel = $('#keyLabel'), demoBadge = $('#demoBadge'), chat = $('#chat');
+const SIMS = [
+  { said: 'um yeah I will be there around seven uh save me a seat', clean: "Yes, I'll be there around 7. Save me a seat!" },
+  { said: 'so uh can you bring the the dessert this time', clean: 'Can you bring the dessert this time?' },
+  { said: 'running like ten minutes late um sorry', clean: 'Running ten minutes late, sorry!' }
+];
+let simIdx = 0;
+const talk = { state: '', toggle: false, pressT: 0, rec: null, finalTxt: '', interim: '', sim: !SR, simT: 0, simPhrase: null, ignoreRelease: false, safety: 0, typing: 0 };
+if (talk.sim) demoBadge.classList.add('on');
+
+function renderBox() {
+  const has = typedEl.textContent || liveEl.textContent;
+  ph.hidden = !!has || talk.state === 'rec';
+  caret.hidden = !(talk.state || document.activeElement === msgbox) ;
+  sendB.disabled = !typedEl.textContent.trim() || talk.state === 'typing';
+}
+msgbox.addEventListener('focus', renderBox); msgbox.addEventListener('blur', renderBox);
+
+function setKeySub(t) { keyLabel.innerHTML = ''; keyLabel.append(t.main); const s = document.createElement('small'); s.textContent = t.sub; keyLabel.appendChild(s); }
+function keyIdle() { setKeySub({ main: 'hold to talk', sub: TOUCH ? 'press and hold' : 'or hold Space in the box' }); }
+keyIdle();
+
+function talkPress() {
+  lastActivity = performance.now();
+  if (talk.state === 'rec' && talk.toggle) { talk.ignoreRelease = true; talkFinish(); return; }
+  if (talk.state) return;
+  stopSpeech(false);
+  talk.state = 'rec'; talk.toggle = false; talk.pressT = performance.now();
+  talk.finalTxt = ''; talk.interim = ''; liveEl.textContent = '';
+  key.classList.add('down'); notch.classList.add('on'); notch.classList.remove('proc'); notchT.textContent = 'Listening';
+  msgbox.classList.add('rec');
+  renderBox();
+  if (!talk.sim) {
+    try {
+      const r = new SR();
+      r.lang = navigator.language || 'en-US';
+      r.interimResults = true; r.continuous = true;
+      r.onresult = ev => {
+        let fin = '', intr = '';
+        for (let i = 0; i < ev.results.length; i++) { const t = ev.results[i][0].transcript; if (ev.results[i].isFinal) fin += t; else intr += t; }
+        talk.finalTxt = fin; talk.interim = intr;
+        if (talk.state === 'rec' || talk.state === 'proc') { liveEl.textContent = (typedEl.textContent ? ' ' : '') + (fin + intr).trim(); renderBox(); }
+      };
+      r.onerror = ev => {
+        if (['not-allowed', 'service-not-allowed', 'network', 'audio-capture', 'language-not-supported'].includes(ev.error)) {
+          talk.sim = true; demoBadge.classList.add('on');
+          if (talk.state === 'rec') simStart();
+          else if (talk.state === 'proc') talkComplete(nextSim().clean);
+        }
+      };
+      r.onend = () => { if (talk.state === 'proc' && !talk.sim) talkComplete((talk.finalTxt + ' ' + talk.interim).trim()); };
+      talk.rec = r;
+      r.start();
+    } catch (err) { talk.sim = true; demoBadge.classList.add('on'); }
+  }
+  if (talk.sim) simStart();
+}
+function nextSim() { return SIMS[simIdx++ % SIMS.length]; }
+function simStart() {
+  talk.simPhrase = nextSim();
+  const words = talk.simPhrase.said.split(' ');
+  let i = 0; clearInterval(talk.simT);
+  talk.simT = setInterval(() => {
+    if (talk.state !== 'rec' || i >= words.length) return clearInterval(talk.simT);
+    i++;
+    liveEl.textContent = (typedEl.textContent ? ' ' : '') + words.slice(0, i).join(' ');
+    renderBox();
+  }, 300);
+}
+function talkRelease() {
+  if (talk.ignoreRelease) { talk.ignoreRelease = false; return; }
+  if (talk.state !== 'rec') return;
+  if (!talk.toggle && performance.now() - talk.pressT < 280) {   // a quick tap: keep listening until the next tap
+    talk.toggle = true;
+    setKeySub({ main: 'listening…', sub: 'tap again to stop' });
+    return;
+  }
+  talkFinish();
+}
+function talkFinish() {
+  if (talk.state !== 'rec') return;
+  talk.state = 'proc'; talk.toggle = false;
+  key.classList.remove('down'); notch.classList.add('proc'); notchT.textContent = 'Typing';
+  keyIdle();
+  clearInterval(talk.simT);
+  if (talk.sim) { const p = talk.simPhrase || nextSim(); setTimeout(() => talkComplete(p.clean), 420); return; }
+  try { talk.rec && talk.rec.stop(); } catch (e) {}
+  clearTimeout(talk.safety);
+  talk.safety = setTimeout(() => { if (talk.state === 'proc') talkComplete((talk.finalTxt + ' ' + talk.interim).trim()); }, 3500);
+}
+function tidy(t) {
+  t = t.replace(/\s+/g, ' ').trim();
+  if (!t) return t;
+  t = t[0].toUpperCase() + t.slice(1);
+  if (!/[.!?…]$/.test(t)) t += '.';
+  return t;
+}
+function talkComplete(text) {
+  if (talk.state !== 'proc') return;
+  clearTimeout(talk.safety);
+  try { talk.rec && talk.rec.abort(); } catch (e) {}
+  talk.rec = null;
+  notch.classList.remove('on', 'proc');
+  msgbox.classList.remove('rec');
+  liveEl.textContent = '';
+  text = tidy(text);
+  if (!text) {
+    talk.state = ''; renderBox();
+    setKeySub({ main: 'didn’t catch that', sub: 'hold a bit longer and talk' });
+    setTimeout(keyIdle, 2600);
+    return;
+  }
+  talk.state = 'typing';
+  const add = (typedEl.textContent ? ' ' : '') + text;
+  let i = 0;
+  renderBox();
+  const step = () => {
+    if (talk.state !== 'typing') return;
+    i += 2; typedEl.textContent += add.slice(i - 2, i);
+    if (i < add.length) { talk.typing = setTimeout(step, 16); return; }
+    talk.state = ''; renderBox();
+    const r = msgbox.getBoundingClientRect();
+    confetti(r.right - 40, r.top + 10, 14);
+    logUsage('dictation');
+  };
+  step();
+}
+function talkAbort() {
+  if (!talk.state) return;
+  clearInterval(talk.simT); clearTimeout(talk.safety); clearTimeout(talk.typing);
+  try { talk.rec && talk.rec.abort(); } catch (e) {}
+  talk.rec = null; talk.state = ''; talk.toggle = false;
+  key.classList.remove('down'); notch.classList.remove('on', 'proc'); msgbox.classList.remove('rec');
+  liveEl.textContent = ''; keyIdle(); renderBox();
+}
+key.addEventListener('pointerdown', e => { e.preventDefault(); try { key.setPointerCapture(e.pointerId); } catch (_) {} talkPress(); });
+key.addEventListener('pointerup', talkRelease);
+key.addEventListener('pointercancel', talkRelease);
+key.addEventListener('contextmenu', e => e.preventDefault());
+key.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); talkPress(); } });
+key.addEventListener('keyup', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); talkRelease(); } });
+msgbox.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); if (!e.repeat) { if (!talk.state || (talk.state === 'rec' && talk.toggle)) talkPress(); } }
+  else if (e.key === 'Backspace' && !talk.state) { typedEl.textContent = typedEl.textContent.slice(0, -1); renderBox(); }
+  else if (e.key === 'Enter' && !sendB.disabled) { e.preventDefault(); sendMsg(); }
+});
+msgbox.addEventListener('keyup', e => { if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); talkRelease(); } });
+msgbox.addEventListener('mousedown', () => setTimeout(() => msgbox.focus(), 0));
+function sendMsg() {
+  const t = typedEl.textContent.trim(); if (!t) return;
+  const m = document.createElement('div'); m.className = 'msg out'; m.textContent = t;
+  chat.appendChild(m);
+  while (chat.children.length > 3) chat.firstElementChild.remove();
+  typedEl.textContent = ''; renderBox();
+  const r = m.getBoundingClientRect(); confetti(r.right - 10, r.top + 10, 18);
+}
+sendB.addEventListener('click', sendMsg);
+renderBox();
+
+/* ================= SPEED RACE ================= */
+let speedVisible = false, speedRaf = 0, speedT0 = 0;
+const SENT = 'Thanks for the update! Thursday works for me, and I will bring the slides and the budget notes.';
+const fT = $('#fType'), fS = $('#fTalk'), nT = $('#nType'), nS = $('#nTalk'), tT = $('#tType'), tS = $('#tTalk');
+function speedStart() {
+  if (speedRaf) return;
+  if (RM) { fT.style.width = (40 / 150 * 100) + '%'; fS.style.width = '100%'; nT.textContent = '40 wpm'; nS.textContent = '150 wpm'; tT.textContent = SENT.slice(0, Math.round(SENT.length * 40 / 150)); tS.textContent = SENT; return; }
+  speedT0 = 0;
+  const run = now => {
+    if (!speedVisible) { speedRaf = 0; return; }
+    speedRaf = requestAnimationFrame(run);
+    if (!speedT0) speedT0 = now;
+    const cyc = 6500, t = ((now - speedT0) % cyc) / 4200, p = Math.min(1, t);
+    const pT = p * 40 / 150;
+    fT.style.width = (pT * 100) + '%'; fS.style.width = (p * 100) + '%';
+    nT.textContent = Math.round(p * 40) + ' wpm'; nS.textContent = Math.round(p * 150) + ' wpm';
+    tT.textContent = SENT.slice(0, Math.round(SENT.length * pT)) + (t < 1.3 ? '|' : '');
+    tS.textContent = SENT.slice(0, Math.round(SENT.length * p));
+  };
+  speedRaf = requestAnimationFrame(run);
+}
+io.observe($('#hero')); io.observe($('#speed'));
+
+/* ================= APPS ================= */
+const APPS1 = ['Mail', 'Messages', 'Slack', 'Safari', 'Chrome', 'Notion', 'Google Docs', 'Word', 'Notes'];
+const APPS2 = ['ChatGPT', 'Claude', 'VS Code', 'Cursor', 'Discord', 'Teams', 'PDFs', 'Pages', 'and more…'];
+function fillMq(el, list) {
+  const mk = dup => list.map(a => `<span class="appchip${dup ? ' dup' : ''}"${dup ? ' aria-hidden="true"' : ''}>${a}</span>`).join('');
+  el.innerHTML = mk(false) + mk(true);
+}
+fillMq($('#mq1'), APPS1); fillMq($('#mq2'), APPS2);
+
+/* ---------- tiny hook for local analytics-free debugging (no-op) ---------- */
+function logUsage() {}
+
+/* ---------- start ---------- */
+startGhost();
+
+/* ================= v6 additions ================= */
+// Local / cloud toggle (hero strip + section)
+{
+  const lc = $('#lc'), fL = $('#flLocal'), fC = $('#flCloud');
+  let cloud = false;
+  const flip = () => {
+    cloud = !cloud;
+    lc.classList.toggle('cloud', cloud);
+    lc.querySelectorAll('[data-m]').forEach(x => x.classList.toggle('on', (x.dataset.m === 'cloud') === cloud));
+    fL.classList.toggle('lit', !cloud); fL.classList.toggle('dim', cloud);
+    fC.classList.toggle('lit', cloud); fC.classList.toggle('dim', !cloud);
+  };
+  fC.classList.add('dim'); fL.classList.add('lit');
+  if (!RM) setInterval(() => { if (!document.hidden) flip(); }, 2600);
+}
+// Yearly bill bars grow when shown
+{
+  const bill = $('#bill');
+  new IntersectionObserver(([e]) => { if (e.isIntersecting) bill.classList.add('go'); }, { threshold: .4 }).observe(bill);
+}
+// Reads anything: cycle documents, select → bubble → read along
+{
+  const docs = [
+    { t: 'Mail', k: 'From: Priya · Launch update', x: 'Hi team, the launch moved to Thursday. Please send your slides by Wednesday at noon so we have time to rehearse.' },
+    { t: 'Lease.pdf', k: 'Section 4.2 · Notice', x: 'Tenants must give at least thirty days of written notice before moving out, or the deposit may be kept.', pdf: 1 },
+    { t: 'Safari', k: 'Science news', x: 'Researchers found that honeybees can learn the idea of zero, placing it below the number one.' },
+    { t: 'Messages', k: 'Mom', x: 'Dinner is at six on Sunday. Can you pick up bread on the way? Grandma is coming too!' },
+  ];
+  const tabs = [...document.querySelectorAll('.ra-tab')], docEl = $('#raDoc'), bub = $('#raBub'), spk = $('#raSpk'), chip = $('#raChip'), title = $('#raTitle'), speed = $('#raSpeed');
+  const win = docEl.parentElement;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let visible = false, running = false, i = 0;
+  const speeds = ['1×', '1.25×', '1.5×', '1×'];
+  async function play() {
+    const d = docs[i % docs.length];
+    tabs.forEach((t, j) => t.classList.toggle('on', j === i % docs.length));
+    title.textContent = d.t; speed.textContent = speeds[i % speeds.length];
+    docEl.innerHTML = `<div class="kick">${d.k}</div><div class="${d.pdf ? 'pdf' : ''}">` + d.x.split(' ').map(w => `<span class="w">${w}</span>`).join(' ') + '</div>';
+    const ws = [...docEl.querySelectorAll('.w')];
+    bub.classList.remove('show'); spk.classList.remove('hot'); chip.classList.remove('show');
+    await sleep(700);
+    for (const w of ws) { w.classList.add('rs'); await sleep(60); }
+    const r = ws.at(-1).getBoundingClientRect(), c = win.getBoundingClientRect();
+    bub.style.left = Math.min(r.right - c.left + 14, c.width - 150) + 'px'; bub.style.top = (r.bottom - c.top + 8) + 'px';
+    bub.classList.add('show'); await sleep(900);
+    spk.classList.add('hot'); await sleep(400);
+    bub.classList.remove('show'); chip.classList.add('show');
+    for (const w of ws) { w.classList.add('rk'); await sleep(330); w.classList.remove('rk'); }
+    chip.classList.remove('show'); await sleep(1000);
+    ws.forEach(w => w.classList.remove('rs'));
+    i++;
+  }
+  if (RM) { tabs[0].classList.add('on'); docEl.innerHTML = `<div class="kick">${docs[0].k}</div>${docs[0].x}`; }
+  else new IntersectionObserver(([e]) => {
+    visible = e.isIntersecting;
+    if (visible && !running) { running = true; (async () => { while (visible) await play(); running = false; })(); }
+  }, { threshold: .35 }).observe(win);
+}
+})();
+</script>
+</body>
+</html>
