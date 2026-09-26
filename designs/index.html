@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SwipeSpeak website designs</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="../assets/favicon.png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,sans-serif;background:#f4f5f9;color:#0b0d14;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:48px 24px 80px}
+header{display:flex;align-items:center;gap:14px;margin-bottom:32px}
+header img{width:44px;height:44px}
+h1{font-size:28px;letter-spacing:-.02em}
+header p{color:#6b7389;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}
+a.card{display:block;background:#fff;border:1px solid #e6e8f0;border-radius:20px;overflow:hidden;color:inherit;text-decoration:none;transition:transform .25s,box-shadow .25s}
+a.card:hover{transform:translateY(-4px);box-shadow:0 20px 40px -18px rgba(16,24,40,.3)}
+.frame{position:relative;aspect-ratio:16/10;overflow:hidden;background:#e9ecf3;border-bottom:1px solid #eef0f5}
+.frame iframe{position:absolute;left:0;top:0;width:1280px;height:800px;border:0;transform-origin:0 0;pointer-events:none}
+.info{padding:16px 18px 18px}
+.info b{font-size:16px}
+.info p{color:#6b7389;font-size:14px;margin-top:4px}
+.live{display:inline-block;margin-left:8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:999px;background:#e8f7ee;color:#16a34a;vertical-align:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><img src="../assets/icon.png" alt=""><div><h1>SwipeSpeak website designs</h1><p>Click a design to open it full size. The live homepage is marked.</p></div></header>
+  <div class="grid">
+    <a class="card" href="1-dark-original/"><div class="frame"><iframe src="1-dark-original/" loading="lazy" tabindex="-1"></iframe></div><div class="info"><b>1 · Dark original</b><p>The first version: dark, headline-led, one animated demo.</p></div></a>
+    <a class="card" href="2-light-demo/"><div class="frame"><iframe src="2-light-demo/" loading="lazy" tabindex="-1"></iframe></div><div class="info"><b>2 · Light demo</b><span class="live">Live now</span><p>Light, with a tabbed animated Mac screen and feature tiles.</p></div></a>
+    <a class="card" href="3-desktop-story/"><div class="frame"><iframe src="3-desktop-story/" loading="lazy" tabindex="-1"></iframe></div><div class="info"><b>3 · Desktop story</b><p>The page is a Mac. Scroll to play the story.</p></div></a>
+    <a class="card" href="4-sound-and-light/"><div class="frame"><iframe src="4-sound-and-light/" loading="lazy" tabindex="-1"></iframe></div><div class="info"><b>4 · Sound and light</b><p>Dark and cinematic: sound becomes text, text becomes sound.</p></div></a>
+    <a class="card" href="5-try-it/"><div class="frame"><iframe src="5-try-it/" loading="lazy" tabindex="-1"></iframe></div><div class="info"><b>5 · Try it yourself</b><p>Bright and playful. Select text or hold to talk right on the page.</p></div></a>
+  </div>
+</div>
+<script>
+// Scale each 1280×800 live preview down to its card.
+const fit = () => document.querySelectorAll(".frame").forEach(f => { f.querySelector("iframe").style.transform = `scale(${f.clientWidth / 1280})`; });
+new ResizeObserver(fit).observe(document.body); fit();
+</script>
+</body>
+</html>

@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SwipeSpeak for Mac: talk to type, select to listen</title>
+<meta name="description" content="SwipeSpeak is a free Mac menu bar app. Hold a key and talk, and your words are typed in any app. Select any text and glide onto a bubble, and your Mac reads it aloud in its own Siri voice.">
+<meta property="og:title" content="SwipeSpeak for Mac">
+<meta property="og:description" content="Talk and it types. Select and it reads. Free for Mac.">
+<meta property="og:image" content="https://lman80.github.io/SwipeSpeak-app/assets/icon.png">
+<meta name="theme-color" content="#04050c">
+<link rel="icon" href="../../assets/favicon.png">
+<link rel="apple-touch-icon" href="../../assets/icon.png">
+<style>
+:root{
+  --bg:#04050c; --bg2:#080b1c; --ink:#eaedff; --ink2:#c3c8e6; --mut:#8a91b4; --dim:#5b6288;
+  --blue:#4d8dff; --sky:#5fd4ff; --vio:#8f6bff; --pink:#ff5ea8; --red:#ff4d5e; --green:#3ee08f;
+  --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.14);
+  --grad:linear-gradient(100deg,#5fd4ff 0%,#4d8dff 30%,#8f6bff 62%,#ff5ea8 100%);
+  --maxw:1200px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;background:var(--bg)}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,sans-serif;color:var(--ink);background:
+  radial-gradient(1200px 700px at 15% -5%,rgba(77,141,255,.16),transparent 60%),
+  radial-gradient(1000px 700px at 90% 5%,rgba(255,94,168,.10),transparent 60%),
+  radial-gradient(900px 900px at 50% 45%,rgba(143,107,255,.07),transparent 65%),
+  var(--bg);line-height:1.45;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:100;opacity:.07;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+a{color:inherit;text-decoration:none}
+img{display:block}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+.grad-t{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ---------- buttons ---------- */
+.dl{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 22px 0 18px;border-radius:999px;font-weight:650;font-size:15px;letter-spacing:-.01em;color:#fff;
+  background:linear-gradient(100deg,#3f7dff,#7a5cff 60%,#c455e0);box-shadow:0 10px 40px -8px rgba(92,110,255,.7),inset 0 1px 0 rgba(255,255,255,.35),0 0 0 1px rgba(255,255,255,.12);
+  transition:transform .2s ease,box-shadow .2s ease;white-space:nowrap}
+.dl:hover{transform:translateY(-2px);box-shadow:0 16px 50px -8px rgba(92,110,255,.9),inset 0 1px 0 rgba(255,255,255,.4),0 0 0 1px rgba(255,255,255,.2)}
+.dl svg{width:18px;height:18px;flex:none}
+.dl.sm{height:36px;padding:0 16px 0 13px;font-size:13px;gap:7px}
+.dl.sm svg{width:15px;height:15px}
+.dl.lg{height:58px;padding:0 30px 0 24px;font-size:17px}
+
+/* ---------- nav ---------- */
+nav.top{position:fixed;top:0;left:0;right:0;z-index:50;background:linear-gradient(rgba(4,5,12,.78),rgba(4,5,12,.5));backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid rgba(255,255,255,.05)}
+nav.top .wrap{display:flex;align-items:center;height:60px;gap:22px}
+.brandmark{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;letter-spacing:-.01em}
+.brandmark img{width:28px;height:28px;border-radius:7px}
+nav.top .links{display:flex;gap:22px;margin-left:auto;font-size:13px;color:var(--mut)}
+nav.top .links a:hover{color:var(--ink)}
+
+/* ---------- glass ---------- */
+.glass{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:22px;
+  box-shadow:0 40px 90px -40px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;min-height:min(100vh,1000px);display:flex;align-items:center;justify-content:center;padding:96px 28px 70px}
+.hero::before{content:"";position:absolute;left:50%;top:50%;width:900px;height:900px;transform:translate(-50%,-50%);pointer-events:none;
+  background:radial-gradient(closest-side,rgba(99,108,255,.22),rgba(143,107,255,.08) 45%,transparent 72%)}
+.stage{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 250px minmax(0,1fr);align-items:center;gap:30px;width:100%;max-width:1260px}
+.panel{padding:18px 18px 18px;min-height:300px;display:flex;flex-direction:column;gap:14px}
+.plabel{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--ink2)}
+.plabel .pdot{width:7px;height:7px;border-radius:50%;background:var(--sky);box-shadow:0 0 10px var(--sky)}
+.plabel.pk .pdot{background:var(--pink);box-shadow:0 0 10px var(--pink)}
+.plabel .arrow{color:var(--dim);font-weight:500;margin-left:auto}
+.mic-row{display:flex;align-items:center;gap:14px;height:64px}
+.key{flex:none;display:grid;place-items:center;width:52px;height:46px;border-radius:10px;font-size:14px;font-weight:600;color:#cfd4f3;
+  background:linear-gradient(#1d2138,#141729);border:1px solid rgba(255,255,255,.12);box-shadow:0 3px 0 #0a0c18,0 6px 14px rgba(0,0,0,.5);transition:transform .12s,box-shadow .12s,color .12s,border-color .12s}
+.key.down{transform:translateY(3px);color:#fff;border-color:rgba(95,212,255,.8);box-shadow:0 0 0 #0a0c18,0 0 22px rgba(95,212,255,.55),inset 0 0 12px rgba(95,212,255,.25)}
+canvas.wave{display:block;width:100%;height:100%}
+.mic-row canvas{flex:1;min-width:0}
+.tbox{flex:1;border-radius:14px;background:rgba(3,4,12,.55);border:1px solid rgba(255,255,255,.07);padding:12px 14px 14px;font-size:17px;line-height:1.5;color:var(--ink);transition:opacity .4s}
+.tbox .thead{font-size:11px;color:var(--dim);margin-bottom:8px;display:flex;gap:6px;align-items:center}
+.tbox .thead b{color:var(--mut);font-weight:600}
+.tbox.fade{opacity:0}
+.dw{opacity:0;display:inline;filter:blur(6px);transition:opacity .25s,filter .35s,color .5s}
+.dw.in{opacity:.55;filter:blur(0)}
+.tbox.final .dw.in{opacity:1;color:#fff;text-shadow:0 0 18px rgba(95,212,255,.35)}
+.caret{display:inline-block;width:2px;height:1.1em;vertical-align:-3px;margin-left:2px;background:var(--sky);box-shadow:0 0 8px var(--sky);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.pfoot{font-size:11px;color:var(--dim);text-align:center}
+
+.rtext{position:relative;flex:1;border-radius:14px;background:rgba(3,4,12,.55);border:1px solid rgba(255,255,255,.07);padding:14px 16px;font-size:17px;line-height:1.62;color:var(--ink2)}
+.w{transition:background-color .15s,color .25s,text-shadow .25s;border-radius:3px}
+.w.sel{background:rgba(77,141,255,.38);color:#fff}
+.w.done{color:#fff}
+.w.lit{color:#fff;background:rgba(255,94,168,.35);text-shadow:0 0 14px rgba(255,94,168,.9)}
+.rtext.fade .w{background:transparent;color:var(--ink2);text-shadow:none}
+.ptr{position:absolute;left:0;top:0;width:18px;height:24px;pointer-events:none;z-index:4;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));will-change:transform}
+.ptr svg{width:100%;height:100%;overflow:visible}
+.ptr .ring{position:absolute;left:-12px;top:-12px;width:24px;height:24px;border-radius:50%;border:2px solid var(--sky);opacity:0;transform:scale(.4)}
+.ptr.click .ring{animation:ring .5s ease-out}
+@keyframes ring{0%{opacity:1;transform:scale(.4)}100%{opacity:0;transform:scale(1.8)}}
+
+.pill{position:absolute;left:0;top:0;display:flex;height:38px;border-radius:999px;background:rgba(22,24,40,.92);border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 12px 30px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4);z-index:3;opacity:0;transform:scale(.6);transform-origin:left center;transition:opacity .18s,transform .28s cubic-bezier(.2,1.5,.4,1);pointer-events:none;overflow:hidden}
+.pill.on{opacity:1;transform:scale(1)}
+.pill span{width:40px;display:grid;place-items:center;font-size:16px;transition:background .2s,box-shadow .2s}
+.pill span+span{border-left:1px solid rgba(255,255,255,.1)}
+.pill span.hot{background:rgba(95,212,255,.2)}
+.pill span.fire{background:rgba(95,212,255,.45);box-shadow:inset 0 0 18px rgba(95,212,255,.8)}
+.pill span.hot.v{background:rgba(255,94,168,.22)}
+.pill span.fire.v{background:rgba(255,94,168,.5);box-shadow:inset 0 0 18px rgba(255,94,168,.9)}
+.pill .dz{font-size:14px;color:#cfd4f3}
+.out-row{height:48px}
+
+.core{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;z-index:2;--amp:0}
+.orb{position:relative;width:150px;height:150px;display:grid;place-items:center;margin-bottom:6px}
+.orb img{position:relative;width:118px;height:118px;border-radius:27px;z-index:2;box-shadow:0 20px 50px rgba(20,40,160,.6),0 0 0 1px rgba(255,255,255,.1);transform:scale(calc(1 + var(--amp) * .06))}
+.orb .glow{position:absolute;inset:-70px;border-radius:50%;background:radial-gradient(closest-side,rgba(95,150,255,.55),rgba(143,107,255,.22) 50%,transparent 75%);opacity:calc(.45 + var(--amp) * .55);transform:scale(calc(.9 + var(--amp) * .25))}
+.orb .halo{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(140,170,255,.25);transform:scale(calc(1.1 + var(--amp) * .25));opacity:calc(.35 + var(--amp) * .6)}
+.orb .halo.h2{transform:scale(calc(1.35 + var(--amp) * .45));opacity:calc(.18 + var(--amp) * .5);border-color:rgba(255,94,168,.3)}
+.orb .halo.h3{transform:scale(calc(1.65 + var(--amp) * .7));opacity:calc(.08 + var(--amp) * .35);border-color:rgba(95,212,255,.3)}
+.beam{position:absolute;top:75px;height:2px;width:calc(50% + 30px);overflow:hidden;opacity:.35;transition:opacity .5s;z-index:1}
+.beam.l{right:50%;background:linear-gradient(90deg,transparent,rgba(95,212,255,.5))}
+.beam.r{left:50%;background:linear-gradient(90deg,rgba(255,94,168,.5),transparent)}
+.beam i{position:absolute;top:-3px;left:0;width:60px;height:8px;border-radius:8px;filter:blur(2px);opacity:0;transition:opacity .4s}
+.beam.l i{background:linear-gradient(90deg,transparent,#9fe8ff,transparent);animation:beamL 1.1s linear infinite}
+.beam.r i{background:linear-gradient(90deg,transparent,#ffb0d4,transparent);animation:beamR 1.1s linear infinite}
+.beam i:nth-child(2){animation-delay:-.55s}
+@keyframes beamL{from{transform:translateX(-60px)}to{transform:translateX(260px)}}
+@keyframes beamR{from{transform:translateX(-60px)}to{transform:translateX(260px)}}
+.stage.l-on .beam.l,.stage.r-on .beam.r{opacity:1}
+.stage.l-on .beam.l i,.stage.r-on .beam.r i{opacity:1}
+.hname{font-size:13px;color:var(--mut);letter-spacing:.02em}
+.hname b{color:var(--ink);font-weight:650}
+.hmeta{font-size:11.5px;color:var(--dim)}
+.scrollhint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);width:22px;height:34px;border-radius:12px;border:1.5px solid rgba(255,255,255,.2)}
+.scrollhint::after{content:"";position:absolute;left:50%;top:7px;width:3px;height:7px;margin-left:-1.5px;border-radius:2px;background:rgba(255,255,255,.6);animation:sh 1.8s ease-in-out infinite}
+@keyframes sh{0%{transform:translateY(0);opacity:1}70%{transform:translateY(10px);opacity:0}100%{opacity:0}}
+
+/* ---------- sections ---------- */
+section.sec{position:relative;padding:110px 0}
+.sh{text-align:center;margin-bottom:44px}
+.tag{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--ink2);background:rgba(255,255,255,.05);border:1px solid var(--line);margin-bottom:16px}
+.tag i{width:6px;height:6px;border-radius:50%;background:var(--sky);box-shadow:0 0 8px var(--sky)}
+.tag.pk i{background:var(--pink);box-shadow:0 0 8px var(--pink)}
+.tag.vi i{background:var(--vio);box-shadow:0 0 8px var(--vio)}
+.sh h2{font-size:clamp(28px,3.6vw,44px);line-height:1.08;letter-spacing:-.03em;font-weight:750}
+.sh p{margin-top:12px;font-size:15px;color:var(--mut)}
+
+/* ---------- notch scene ---------- */
+.macwrap{max-width:940px;margin:0 auto}
+.bezel{position:relative;background:#0b0c11;border-radius:26px 26px 0 0;padding:12px 12px 0;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 50px 120px -30px rgba(40,60,200,.45);
+  -webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent)}
+.screen{position:relative;height:400px;border-radius:14px 14px 0 0;overflow:hidden;
+  background:radial-gradient(600px 300px at 20% 110%,rgba(255,94,168,.45),transparent 70%),radial-gradient(700px 360px at 85% 100%,rgba(77,141,255,.55),transparent 70%),linear-gradient(160deg,#171a3a,#0e1030 50%,#1b1036)}
+.menubar{position:absolute;left:0;right:0;top:0;height:30px;display:flex;align-items:center;gap:18px;padding:0 16px;font-size:12.5px;color:#e8eaf6;background:rgba(10,12,28,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.menubar svg{width:14px;height:14px;fill:#fff}
+.menubar b{font-weight:700}
+.menubar .mr{margin-left:auto;display:flex;gap:14px;align-items:center}
+.menubar .mr img{width:16px;height:16px;border-radius:4px}
+.menubar .left-items span:nth-child(n+4){}
+.notch{position:absolute;top:0;left:50%;width:170px;height:30px;transform:translateX(-50%);background:#000;border-radius:0 0 12px 12px;z-index:3}
+.wings{position:absolute;top:0;left:50%;width:170px;height:34px;transform:translateX(-50%);background:#000;border-radius:0 0 16px 16px;z-index:2;
+  display:flex;align-items:center;justify-content:space-between;padding:0 14px 0 16px;transition:width .5s cubic-bezier(.2,1.25,.35,1),height .5s cubic-bezier(.2,1.25,.35,1);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.wings.open{width:410px;height:38px}
+.wings .bars,.wings .stop{opacity:0;transition:opacity .2s}
+.wings.open .bars,.wings.open .stop{opacity:1;transition-delay:.18s}
+.wings .bars{display:flex;align-items:center;gap:3px;height:22px}
+.wings .bars i{display:block;width:3px;height:22px;border-radius:2px;background:linear-gradient(#9fe8ff,#4d8dff);transform:scaleY(.12)}
+.wings.proc .bars i{background:#8a91b4}
+.wings .stop{width:20px;height:20px;border-radius:50%;background:var(--red);display:grid;place-items:center;box-shadow:0 0 12px rgba(255,77,94,.7)}
+.wings .stop::after{content:"";width:7px;height:7px;border-radius:1.5px;background:#fff}
+.wings.proc .stop{background:#30344a;box-shadow:none}
+.wings.proc .stop::after{width:10px;height:10px;border-radius:50%;background:none;border:2px solid #9aa3d6;border-top-color:transparent;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.mail{position:absolute;left:50%;top:78px;width:min(560px,86%);transform:translateX(-50%);border-radius:12px;background:rgba(28,30,48,.92);border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 60px rgba(0,0,0,.5);overflow:hidden}
+.mail .tb{height:34px;display:flex;align-items:center;gap:7px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px;color:var(--mut)}
+.tl{display:flex;gap:7px}
+.tl i{width:11px;height:11px;border-radius:50%;background:#ff5f57}
+.tl i:nth-child(2){background:#febc2e}.tl i:nth-child(3){background:#28c840}
+.mail .tb span{margin-left:10px}
+.mail .f{padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;color:var(--mut)}
+.mail .f b{color:var(--ink2);font-weight:500}
+.mail .body{padding:16px 16px 60px;font-size:17px;line-height:1.55;color:#fff;min-height:130px}
+.mail .body .dw{filter:blur(4px)}
+.mail .body .dw.in{opacity:1;filter:none}
+.keys{display:flex;justify-content:center;gap:10px;margin-top:-30px;position:relative;z-index:2}
+.keys .key{width:auto;min-width:64px;height:54px;padding:0 12px;font-size:12px;font-weight:500;color:#9aa1c7;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding-bottom:7px;border-radius:9px}
+.keys .key.fnk{min-width:64px;align-items:center;justify-content:center;padding:0;font-size:15px;font-weight:600;color:#dfe3ff;gap:2px}
+.keys .key.fnk small{font-size:10px;color:var(--mut);font-weight:500}
+.keys .key.space{min-width:260px}
+.keycap-hint{text-align:center;margin-top:18px;font-size:13px;color:var(--mut);letter-spacing:.02em}
+.keycap-hint b{color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:860px;margin:54px auto 0}
+.chip{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;color:var(--ink2);background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.chip em{font-style:normal;font-size:14px}
+
+/* ---------- window (read aloud) ---------- */
+.win{max-width:860px;margin:0 auto;border-radius:16px;overflow:hidden;background:rgba(18,20,36,.85);border:1px solid rgba(255,255,255,.1);box-shadow:0 50px 120px -40px rgba(255,94,168,.3),0 30px 80px -30px rgba(0,0,0,.9)}
+.win .tb{height:44px;display:flex;align-items:center;gap:12px;padding:0 14px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06);position:relative}
+.win .url{flex:1;max-width:360px;margin:0 auto;height:26px;border-radius:7px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--mut)}
+.win .tb .spacer{width:47px}
+.win .wb{position:relative;padding:34px 44px 44px;font-size:clamp(17px,1.8vw,21px);line-height:1.72;color:var(--ink2)}
+.win .wb h3{font-size:13px;color:var(--dim);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px}
+.hud{position:absolute;right:12px;top:6px;height:32px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:9px;background:rgba(40,42,62,.95);border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 24px rgba(0,0,0,.5);
+  opacity:0;transform:translateY(-6px);transition:opacity .3s,transform .3s;z-index:5}
+.hud.on{opacity:1;transform:none}
+.hud .hb{display:flex;align-items:center;gap:2px;height:16px}
+.hud .hb i{display:block;width:2.5px;height:16px;border-radius:2px;background:linear-gradient(#ffb0d4,#ff5ea8);transform:scaleY(.2)}
+.hud .ctl{display:flex;gap:6px;font-size:11px;color:#dfe3ff}
+.hud .ctl span{width:22px;height:20px;display:grid;place-items:center;border-radius:5px;background:rgba(255,255,255,.08)}
+.hud small{font-size:11px;color:var(--ink2)}
+
+/* ---------- summary ---------- */
+.sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1040px;margin:0 auto;align-items:stretch}
+.sumbox{position:relative;display:grid;min-height:330px;padding:26px 28px}
+.sumbox > *{grid-area:1/1}
+.longtext{font-size:14.5px;line-height:1.7;color:var(--mut);transition:transform .7s cubic-bezier(.7,0,.3,1),opacity .6s,filter .6s;transform-origin:50% 50%}
+.longtext mark{background:transparent;color:inherit;transition:background .3s,color .3s}
+.sumbox.sel .longtext mark{background:rgba(77,141,255,.33);color:#e8ecff}
+.sumbox.collapse .longtext{transform:scaleY(.02) scaleX(.6);opacity:0;filter:blur(2px)}
+.flash{align-self:center;height:2px;background:linear-gradient(90deg,transparent,#fff,transparent);box-shadow:0 0 20px #ff9ed0,0 0 40px #8f6bff;opacity:0;transform:scaleX(.2)}
+.sumbox.collapse .flash{animation:flash 1s ease-out}
+@keyframes flash{0%{opacity:0;transform:scaleX(.2)}30%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1.1)}}
+.bullets{align-self:center;list-style:none;display:flex;flex-direction:column;gap:14px}
+.bullets li{display:flex;gap:12px;align-items:flex-start;font-size:16px;line-height:1.4;color:var(--ink2);opacity:0;transform:scaleY(.2) translateY(-10px);transition:opacity .45s,transform .55s cubic-bezier(.2,1.3,.4,1),color .3s,text-shadow .3s}
+.bullets li::before{content:"";flex:none;width:10px;height:10px;margin-top:6px;border-radius:50%;background:var(--grad);box-shadow:0 0 12px rgba(255,94,168,.8)}
+.sumbox.bul .bullets li{opacity:1;transform:none}
+.sumbox.bul .bullets li:nth-child(2){transition-delay:.18s}
+.sumbox.bul .bullets li:nth-child(3){transition-delay:.36s}
+.bullets li.lit{color:#fff;text-shadow:0 0 16px rgba(255,94,168,.7)}
+.bullets li.lit::before{box-shadow:0 0 18px 4px rgba(255,94,168,.9)}
+.sumbox .pill{left:auto;right:22px;top:auto;bottom:18px;transform-origin:right center}
+.sumread{position:absolute;left:28px;bottom:22px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mut);opacity:0;transition:opacity .4s}
+.sumread.on{opacity:1}
+.sumread .hb{display:flex;gap:2px;align-items:center;height:16px}
+.sumread .hb i{display:block;width:2.5px;height:16px;border-radius:2px;background:linear-gradient(#ffb0d4,#8f6bff);transform:scaleY(.2)}
+.sumside{display:flex;flex-direction:column;justify-content:center;gap:16px;padding:10px 6px}
+.stat{display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid var(--line)}
+.stat .n{font-size:30px;font-weight:750;letter-spacing:-.03em;min-width:78px}
+.stat .l{font-size:13px;color:var(--mut)}
+
+/* ---------- gestures ---------- */
+.ggrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.gcard{padding:18px 18px 20px;text-align:center}
+.gcard svg{display:block;width:100%;height:auto;aspect-ratio:260/150;border-radius:14px;background:rgba(3,4,12,.5);border:1px solid rgba(255,255,255,.06)}
+.gcard h3{margin-top:16px;font-size:17px;font-weight:700;letter-spacing:-.01em}
+.gcard p{margin-top:4px;font-size:13px;color:var(--mut)}
+
+/* ---------- speed ---------- */
+.speed{max-width:980px;margin:0 auto;display:grid;grid-template-columns:1fr 220px;gap:26px;align-items:center}
+.lanes{padding:22px;display:flex;flex-direction:column;gap:18px}
+.lane{display:grid;grid-template-columns:40px 1fr;gap:14px;align-items:start}
+.lane .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.lane .ic svg{width:20px;height:20px;stroke:var(--mut);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lane.fast .ic{background:rgba(95,212,255,.12);border-color:rgba(95,212,255,.35)}
+.lane.fast .ic svg{stroke:var(--sky)}
+.lane .top{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-bottom:6px}
+.lane .top b{color:var(--ink);font-weight:650}
+.lane .txt{min-height:52px;font-size:15px;line-height:1.55;color:var(--ink)}
+.lane.slow .txt{color:var(--ink2)}
+.lane .bar{height:6px;border-radius:6px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:8px}
+.lane .bar i{display:block;height:100%;width:100%;border-radius:6px;transform-origin:left;transform:scaleX(0);background:#5b6288}
+.lane.fast .bar i{background:var(--grad);box-shadow:0 0 14px rgba(95,212,255,.6)}
+.big{text-align:center}
+.big .x{font-size:clamp(64px,9vw,104px);font-weight:800;letter-spacing:-.05em;line-height:1}
+.big small{display:block;margin-top:6px;font-size:13px;color:var(--mut)}
+.speed-note{text-align:center;font-size:11.5px;color:var(--dim);margin-top:20px}
+
+/* ---------- orbit ---------- */
+.orbit{--R:min(290px,37vw);position:relative;height:calc(var(--R) * 2 + 80px);max-width:100%;margin:0 auto}
+.orbit .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:120px;height:120px;z-index:2}
+.orbit .center img{width:100%;height:100%;border-radius:28px;box-shadow:0 0 80px 20px rgba(77,141,255,.35),0 0 0 1px rgba(255,255,255,.12)}
+.orbit .center::before{content:"";position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(closest-side,rgba(143,107,255,.35),transparent);z-index:-1}
+.ring{position:absolute;left:50%;top:50%;width:0;height:0;animation:spin 110s linear infinite}
+.ring.r2{animation-duration:160s;animation-direction:reverse}
+.ring::before{content:"";position:absolute;left:calc(var(--f) * var(--R) * -1);top:calc(var(--f) * var(--R) * -1);width:calc(var(--f) * var(--R) * 2);height:calc(var(--f) * var(--R) * 2);border-radius:50%;border:1px dashed rgba(255,255,255,.1)}
+.ring .o{position:absolute;left:0;top:0;transform:rotate(var(--a)) translateX(calc(var(--f) * var(--R))) rotate(calc(var(--a) * -1))}
+.ring .o span{display:block;transform:translate(-50%,-50%);}
+.ring .o span b{display:block;white-space:nowrap;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:550;color:var(--ink);background:rgba(20,22,40,.85);border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 24px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06);animation:spin 110s linear infinite reverse}
+.ring.r2 .o span b{animation-duration:160s;animation-direction:normal}
+.ring .o.hl span b{border-color:rgba(95,212,255,.45);box-shadow:0 0 22px rgba(95,212,255,.35),inset 0 1px 0 rgba(255,255,255,.06)}
+.ring .o.hp span b{border-color:rgba(255,94,168,.45);box-shadow:0 0 22px rgba(255,94,168,.3),inset 0 1px 0 rgba(255,255,255,.06)}
+.paused .ring,.paused .ring .o span b,.paused .beam i,.paused .caret,.paused .scrollhint::after{animation-play-state:paused}
+
+/* ---------- privacy strip ---------- */
+.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.si{display:flex;align-items:center;gap:14px;padding:18px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid var(--line)}
+.si .ic{flex:none;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(77,141,255,.25),rgba(143,107,255,.2));border:1px solid rgba(143,160,255,.3)}
+.si .ic svg{width:20px;height:20px;stroke:#cfe0ff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.si b{display:block;font-size:14px;font-weight:650}
+.si small{font-size:12px;color:var(--mut)}
+
+/* ---------- steps ---------- */
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.step{padding:22px;display:flex;flex-direction:column;gap:14px}
+.step .num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--grad);box-shadow:0 0 18px rgba(143,107,255,.6)}
+.step .vis{height:130px;border-radius:14px;background:rgba(3,4,12,.5);border:1px solid rgba(255,255,255,.06);display:grid;place-items:center;position:relative;overflow:hidden}
+.step b{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.step small{font-size:12.5px;color:var(--mut);line-height:1.5}
+.v1{display:flex;align-items:center;gap:14px}
+.v1 img{width:56px;height:56px;border-radius:13px}
+.v1 .arr{color:var(--dim);font-size:20px}
+.v1 .folder{width:64px;height:50px;border-radius:8px;background:linear-gradient(#6aa6ff,#3d74e0);position:relative;display:grid;place-items:center;font-size:9px;color:#eaf2ff;font-weight:600;padding-top:8px}
+.v1 .folder::before{content:"";position:absolute;left:0;top:-6px;width:26px;height:10px;border-radius:4px 4px 0 0;background:#5d97f5}
+.v2{width:82%;border-radius:10px;background:rgba(40,42,62,.9);border:1px solid rgba(255,255,255,.1);padding:10px 12px;font-size:10.5px;color:var(--mut);display:flex;flex-direction:column;gap:8px}
+.v2 .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.v2 .btn{padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.12);color:#fff;font-size:10.5px;white-space:nowrap;box-shadow:0 0 0 2px rgba(95,212,255,.6),0 0 16px rgba(95,212,255,.5)}
+.v3{width:82%;display:flex;flex-direction:column;gap:8px}
+.v3 .row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:9px;background:rgba(40,42,62,.9);border:1px solid rgba(255,255,255,.08);font-size:11.5px;color:var(--ink2)}
+.tog{width:30px;height:18px;border-radius:9px;background:var(--green);position:relative;box-shadow:0 0 12px rgba(62,224,143,.5)}
+.tog::after{content:"";position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff}
+
+/* ---------- faq ---------- */
+.faq{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.faq details{border-radius:16px;background:rgba(255,255,255,.03);border:1px solid var(--line);padding:0 20px;transition:background .2s}
+.faq details[open]{background:rgba(255,255,255,.055)}
+.faq summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 0;font-size:15.5px;font-weight:600}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-size:20px;color:var(--mut);font-weight:400;transition:transform .2s}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq details p{padding:0 0 18px;font-size:14px;color:var(--mut);line-height:1.6}
+.faq code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--ink2);background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px}
+.faq a{color:#9fc0ff;text-decoration:underline;text-decoration-color:rgba(159,192,255,.4)}
+
+/* ---------- final ---------- */
+.final{text-align:center;padding:120px 0 90px;position:relative}
+.final::before{content:"";position:absolute;left:50%;top:40%;width:700px;height:700px;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(99,108,255,.25),transparent 70%);pointer-events:none}
+.final .fi{position:relative;width:132px;height:132px;margin:0 auto 26px;border-radius:30px;box-shadow:0 0 120px 30px rgba(77,141,255,.35),0 0 0 1px rgba(255,255,255,.12)}
+.final .fwave{position:relative;width:min(520px,90%);height:56px;margin:0 auto 28px}
+.final .meta{position:relative;margin-top:14px;font-size:12px;color:var(--dim)}
+footer{border-top:1px solid rgba(255,255,255,.06);padding:26px 0 40px;font-size:12px;color:var(--dim)}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+footer a:hover{color:var(--ink)}
+
+/* ---------- responsive ---------- */
+@media (max-width:1060px){
+  .stage{grid-template-columns:minmax(0,1fr) 200px minmax(0,1fr);gap:18px}
+  .beam{display:none}
+}
+@media (max-width:900px){
+  .hero{padding-top:88px}
+  .stage{grid-template-columns:minmax(0,1fr);max-width:540px;gap:22px}
+  .core{order:-1}
+  .panel{min-height:0}
+  .sumgrid{grid-template-columns:1fr}
+  .ggrid{grid-template-columns:1fr;max-width:460px;margin:0 auto}
+  .speed{grid-template-columns:1fr}
+  .strip{grid-template-columns:1fr 1fr}
+  .steps{grid-template-columns:1fr;max-width:460px;margin:0 auto}
+  nav.top .links{display:none}
+  nav.top .dl{margin-left:auto}
+  .wings.open{width:340px}
+  .keys .key.space{min-width:140px}
+  .scrollhint{display:none}
+}
+@media (max-width:620px){
+  .wrap{padding:0 18px}
+  .hero{padding-left:18px;padding-right:18px}
+  section.sec{padding:80px 0}
+  .screen{height:340px}
+  .notch{width:120px}
+  .wings{width:120px;padding:0 10px 0 12px}
+  .wings.open{width:280px}
+  .wings .bars{gap:2px}
+  .menubar{gap:12px;font-size:11.5px}
+  .menubar .hide-sm{display:none}
+  .mail .body{font-size:15px}
+  .keys{gap:7px}
+  .keys .key{min-width:52px;height:48px;font-size:11px}
+  .keys .key.space{min-width:80px}
+  .keys .hide-sm{display:none}
+  .win .wb{padding:26px 22px 34px}
+  .hud small{display:none}
+  .strip{grid-template-columns:1fr}
+  .orbit .center{width:76px;height:76px}
+  .orbit .center img{border-radius:18px}
+  .ring .o span b{font-size:11px;padding:6px 10px}
+  .ring.r1{--f:.6 !important}
+  .final .fi{width:104px;height:104px;border-radius:24px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important}
+}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap">
+    <a class="brandmark" href="#top"><img src="../../assets/icon.png" alt="">SwipeSpeak</a>
+    <div class="links"><a href="#dictation">Dictation</a><a href="#read">Read Aloud</a><a href="#install">Install</a><a href="#faq">FAQ</a></div>
+    <a class="dl sm" href="https://github.com/lman80/SwipeSpeak-app/releases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg><span class="dl-label">Download</span></a>
+  </div>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header class="hero" id="top" data-anim>
+  <div class="stage" id="hero">
+    <div class="panel glass" id="hDict" aria-label="Dictation demo: hold fn, speak, and the words are typed">
+      <div class="plabel"><span class="pdot"></span>Dictation<span class="arrow">voice → text</span></div>
+      <div class="mic-row"><div class="key" id="hFn">fn</div><canvas class="wave" id="hWaveL"></canvas></div>
+      <div class="tbox" id="hBox"><div class="thead"><b>Messages</b> · to Sam</div><span id="hDictText">Running ten minutes late — save me a seat, and order me the usual!</span><i class="caret"></i></div>
+    </div>
+
+    <div class="core" id="hCore">
+      <div class="beam l"><i></i><i></i></div><div class="beam r"><i></i><i></i></div>
+      <div class="orb"><div class="glow"></div><div class="halo h3"></div><div class="halo h2"></div><div class="halo"></div><img src="../../assets/icon.png" alt="SwipeSpeak app icon"></div>
+      <div class="hname"><b>SwipeSpeak</b> · free for Mac</div>
+      <a class="dl" href="https://github.com/lman80/SwipeSpeak-app/releases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg><span class="dl-label">Download</span></a>
+      <div class="hmeta">macOS 14+ · Apple silicon</div>
+    </div>
+
+    <div class="panel glass" id="hRead" aria-label="Read Aloud demo: select text, glide onto the speaker, and hear it">
+      <div class="plabel pk"><span class="pdot"></span>Read Aloud<span class="arrow">text → voice</span></div>
+      <div class="rtext" id="hRText"><p id="hReadText">Select any text and SwipeSpeak reads it aloud in your Mac's own voice. Keep working while you listen.</p>
+        <div class="pill" id="hPill"><span>🔊</span><span>✨</span><span class="dz">⇕</span></div>
+        <div class="ptr" id="hPtr"><div class="ring"></div><svg viewBox="0 0 14 20"><path d="M1 1 L1 16.5 L4.9 12.9 L7.6 19 L10.2 17.9 L7.6 11.9 L12.8 11.9 Z" fill="#fff" stroke="#000" stroke-width="1.1" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="out-row"><canvas class="wave" id="hWaveR"></canvas></div>
+    </div>
+  </div>
+  <div class="scrollhint" aria-hidden="true"></div>
+</header>
+
+<!-- ================= DICTATION: NOTCH ================= -->
+<section class="sec" id="dictation" data-anim>
+  <div class="wrap">
+    <div class="sh"><span class="tag"><i></i>Dictation</span><h2>Hold <span class="grad-t">fn</span>. Talk. Let go.</h2><p>Typed wherever your cursor is.</p></div>
+    <div class="macwrap" id="notchScene">
+      <div class="bezel"><div class="screen">
+        <div class="menubar">
+          <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          <b>Mail</b><span class="hide-sm">File</span><span class="hide-sm">Edit</span><span class="hide-sm">View</span>
+          <div class="mr"><img src="../../assets/icon.png" alt=""><span class="hide-sm">Fri</span><span>9:41</span></div>
+        </div>
+        <div class="wings" id="nWings"><div class="bars" id="nBars"></div><div class="stop"></div></div>
+        <div class="notch"></div>
+        <div class="mail">
+          <div class="tb"><div class="tl"><i></i><i></i><i></i></div><span>New Message</span></div>
+          <div class="f">To: <b>Dad</b></div>
+          <div class="f">Subject: <b>Sunday</b></div>
+          <div class="body" id="nBody"><span id="nText">Hi Dad, dinner on Sunday at six? I'll bring dessert and the photos from the lake.</span><i class="caret"></i></div>
+        </div>
+      </div></div>
+      <div class="keys" aria-hidden="true">
+        <div class="key fnk" id="nFn">fn<small>🌐</small></div><div class="key">control</div><div class="key hide-sm">option</div><div class="key">command</div><div class="key space"></div>
+      </div>
+      <div class="keycap-hint"><b>Hold</b> to talk · or <b>tap</b> to start and stop</div>
+    </div>
+    <div class="chips" aria-label="More dictation features">
+      <span class="chip"><em>🧹</em>AI cleanup: no more “um”</span>
+      <span class="chip"><em>↵</em>Say “new line”</span>
+      <span class="chip"><em>•</em>Say “bullet point”</span>
+      <span class="chip"><em>✏️</em>Edit Mode: say the change</span>
+      <span class="chip"><em>🎛</em>Modes per app</span>
+      <span class="chip"><em>🧠</em>Learns your words</span>
+      <span class="chip"><em>📋</em>Paste Again</span>
+      <span class="chip"><em>✈️</em>Works offline</span>
+      <span class="chip"><em>🎙</em>Meetings &amp; audio files</span>
+      <span class="chip"><em>🕘</em>History</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= READ ALOUD: BUBBLE ================= -->
+<section class="sec" id="read" data-anim>
+  <div class="wrap">
+    <div class="sh"><span class="tag pk"><i></i>Read Aloud</span><h2>Select. Glide. <span class="grad-t">Listen.</span></h2><p>In your Mac's own Siri voice.</p></div>
+    <div class="win" id="bScene">
+      <div class="tb"><div class="tl"><i></i><i></i><i></i></div><div class="url">Any app · any text</div><div class="spacer"></div>
+        <div class="hud" id="bHud"><small>Speaking…</small><div class="hb" id="bHudBars"></div><div class="ctl"><span>⏪</span><span>⏸</span><span>⏩</span></div></div>
+      </div>
+      <div class="wb" id="bBody">
+        <h3>Recipe · Grandma's lemon cake</h3>
+        <p id="bText">Beat the butter and sugar until pale and fluffy, then add the eggs one at a time. Fold in the flour gently, pour into the tin, and bake for forty minutes until golden.</p>
+        <div class="pill" id="bPill"><span>🔊</span><span>✨</span><span class="dz">⇕</span></div>
+        <div class="ptr" id="bPtr"><div class="ring"></div><svg viewBox="0 0 14 20"><path d="M1 1 L1 16.5 L4.9 12.9 L7.6 19 L10.2 17.9 L7.6 11.9 L12.8 11.9 Z" fill="#fff" stroke="#000" stroke-width="1.1" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+    <div class="chips" style="margin-top:34px">
+      <span class="chip"><em>🔊</em>Rest on it, or click</span>
+      <span class="chip"><em>🍎</em>Your Siri voice &amp; speed</span>
+      <span class="chip"><em>💻</em>Reads right on your Mac</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SUMMARY ================= -->
+<section class="sec" id="summary" data-anim>
+  <div class="wrap">
+    <div class="sh"><span class="tag vi"><i></i>✨ AI Summary</span><h2>Long read? <span class="grad-t">Just the gist.</span></h2><p>A short summary, read aloud.</p></div>
+    <div class="sumgrid">
+      <div class="glass sumbox" id="sScene">
+        <div class="longtext"><mark>Hi everyone, quick update on the family trip. We've booked the lake house from Friday the 12th through Sunday the 14th. Check-in is after 3 pm, and the door code will be sent the morning we arrive. Please bring your own towels, since the house only provides sheets. Mom is handling Saturday dinner, but we still need someone to bring breakfast things for Sunday morning. Parking is tight, so please try to carpool if you can. Let me know by Wednesday if anything changes, and feel free to bring board games!</mark></div>
+        <div class="flash"></div>
+        <ul class="bullets"><li>Lake house, Fri 12 – Sun 14, check-in after 3 pm</li><li>Bring towels; someone needs to bring Sunday breakfast</li><li>Carpool if you can, and reply by Wednesday</li></ul>
+        <div class="sumread" id="sRead"><div class="hb" id="sBars"></div>Reading summary</div>
+        <div class="pill" id="sPill"><span>🔊</span><span class="v">✨</span><span class="dz">⇕</span></div>
+        <div class="ptr" id="sPtr"><div class="ring"></div><svg viewBox="0 0 14 20"><path d="M1 1 L1 16.5 L4.9 12.9 L7.6 19 L10.2 17.9 L7.6 11.9 L12.8 11.9 Z" fill="#fff" stroke="#000" stroke-width="1.1" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="sumside">
+        <div class="stat"><div class="n grad-t">~90</div><div class="l">words in the email</div></div>
+        <div class="stat"><div class="n grad-t">3</div><div class="l">points you actually hear</div></div>
+        <div class="stat"><div class="n grad-t">✨</div><div class="l">Glide onto the sparkle<br>(free Groq key)</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GESTURES ================= -->
+<section class="sec" id="gestures" data-anim>
+  <div class="wrap">
+    <div class="sh"><span class="tag pk"><i></i>Gestures</span><h2>Your mouse is the <span class="grad-t">remote</span>.</h2></div>
+    <div class="ggrid">
+      <div class="glass gcard">
+        <svg viewBox="0 0 260 150" id="gScroll" aria-label="Scroll the wheel to select more text">
+          <g id="gsSel"></g><g id="gsLines"></g>
+          <g transform="translate(206 44)">
+            <rect x="-20" y="0" width="40" height="64" rx="20" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>
+            <line x1="-20" y1="26" x2="20" y2="26" stroke="rgba(255,255,255,.18)"/><line x1="0" y1="0" x2="0" y2="26" stroke="rgba(255,255,255,.18)"/>
+            <rect id="gsWheel" x="-3" y="8" width="6" height="12" rx="3" fill="#5fd4ff"/>
+            <path id="gsChev" d="M-7 78 L0 85 L7 78" fill="none" stroke="#5fd4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        </svg>
+        <h3>Scroll</h3><p>Select more</p>
+      </div>
+      <div class="glass gcard">
+        <svg viewBox="0 0 260 150" id="gShake" aria-label="Shake the mouse to stop reading">
+          <rect id="gkPill" x="55" y="30" width="150" height="38" rx="19" fill="rgba(255,94,168,.12)" stroke="rgba(255,94,168,.45)"/>
+          <g id="gkBars"></g>
+          <g id="gkStop" opacity="0"><rect x="118" y="41" width="16" height="16" rx="3" fill="#ff4d5e"/></g>
+          <g id="gkGhosts"></g>
+          <g id="gkPtr"></g>
+        </svg>
+        <h3>Shake</h3><p>Stop reading</p>
+      </div>
+      <div class="glass gcard">
+        <svg viewBox="0 0 260 150" id="gCircle" aria-label="Circle clockwise for the next sentence, counter-clockwise for the previous one">
+          <g id="gcSel"></g><g id="gcLines"></g>
+          <circle cx="196" cy="70" r="38" fill="none" stroke="rgba(255,255,255,.12)" stroke-dasharray="3 5"/>
+          <circle id="gcCW" cx="196" cy="70" r="38" fill="none" stroke="#5fd4ff" stroke-width="2.5" stroke-linecap="round" transform="rotate(-90 196 70)" stroke-dasharray="238.8" stroke-dashoffset="238.8"/>
+          <circle id="gcCCW" cx="196" cy="70" r="38" fill="none" stroke="#ff5ea8" stroke-width="2.5" stroke-linecap="round" transform="translate(392 0) scale(-1 1) rotate(-90 196 70)" stroke-dasharray="238.8" stroke-dashoffset="238.8"/>
+          <text id="gcLbl" x="196" y="136" text-anchor="middle" font-size="12" font-weight="600" fill="#5fd4ff" opacity="0">↻ next</text>
+          <g id="gcPtr"></g>
+        </svg>
+        <h3>Circle</h3><p>↻ next sentence · ↺ back</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SPEED ================= -->
+<section class="sec" id="speed" data-anim>
+  <div class="wrap">
+    <div class="sh"><span class="tag"><i></i>Speed</span><h2>Talk <span class="grad-t">faster</span> than you type.</h2></div>
+    <div class="speed">
+      <div class="glass lanes" id="spScene">
+        <div class="lane slow">
+          <div class="ic"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M7 14h10"/></svg></div>
+          <div><div class="top"><span>Typing</span><b>~40 words/min</b></div><div class="txt" id="spType"></div><div class="bar"><i id="spTypeBar"></i></div></div>
+        </div>
+        <div class="lane fast">
+          <div class="ic"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></div>
+          <div><div class="top"><span>Speaking</span><b>~150 words/min</b></div><div class="txt" id="spSpeak"></div><div class="bar"><i id="spSpeakBar"></i></div></div>
+        </div>
+      </div>
+      <div class="big"><div class="x grad-t">~4×</div><small>faster than typing</small></div>
+    </div>
+    <div class="speed-note">Typical rates. Your mileage may vary.</div>
+  </div>
+</section>
+
+<!-- ================= EVERY APP ================= -->
+<section class="sec" id="apps" data-anim>
+  <div class="wrap">
+    <div class="sh"><span class="tag vi"><i></i>Everywhere</span><h2>Works in <span class="grad-t">every app</span>.</h2></div>
+    <div class="orbit" id="orbit">
+      <div class="center"><img src="../../assets/icon.png" alt="SwipeSpeak"></div>
+      <div class="ring r1" style="--f:.56" id="ring1"></div>
+      <div class="ring r2" style="--f:1" id="ring2"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PRIVACY / FREE ================= -->
+<section class="sec" style="padding-top:40px;padding-bottom:40px">
+  <div class="wrap">
+    <div class="strip">
+      <div class="si"><div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8S10.5 3 7.5 3.5 7 8 12 8zm0 0s1.5-5 4.5-4.5S17 8 12 8z"/></svg></div><div><b>Free</b><small>No subscription</small></div></div>
+      <div class="si"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6M3 3l18 18"/></svg></div><div><b>No account</b><small>No SwipeSpeak server</small></div></div>
+      <div class="si"><div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/><path d="M10 10.5l1.5 1.5 3-3"/></svg></div><div><b>Reads on your Mac</b><small>Text leaves only for ✨</small></div></div>
+      <div class="si"><div class="ic"><svg viewBox="0 0 24 24"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0M12 19h.01M3 3l18 18"/></svg></div><div><b>Offline option</b><small>On-device dictation</small></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= INSTALL ================= -->
+<section class="sec" id="install">
+  <div class="wrap">
+    <div class="sh"><span class="tag"><i></i>Install</span><h2>Ready in <span class="grad-t">3 steps</span>.</h2></div>
+    <div class="steps">
+      <div class="glass step">
+        <div class="vis"><div class="v1"><img src="../../assets/icon.png" alt=""><span class="arr">→</span><div class="folder">Applications</div></div></div>
+        <div class="num">1</div><b>Download &amp; drag</b><small>Unzip, move SwipeSpeak to Applications.</small>
+      </div>
+      <div class="glass step">
+        <div class="vis"><div class="v2"><div class="row"><span>Privacy &amp; Security</span></div><div class="row"><span>“SwipeSpeak” was blocked…</span><span class="btn">Open Anyway</span></div></div></div>
+        <div class="num">2</div><b>Open Anyway, once</b><small>System Settings › Privacy &amp; Security. Not from the App Store, so macOS asks once.</small>
+      </div>
+      <div class="glass step">
+        <div class="vis"><div class="v3"><div class="row">Accessibility<span class="tog"></span></div><div class="row">Microphone<span class="tog"></span></div></div></div>
+        <div class="num">3</div><b>Follow the Setup Guide</b><small>It walks you through each switch.</small>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FAQ ================= -->
+<section class="sec" id="faq" style="padding-top:40px">
+  <div class="wrap">
+    <div class="sh"><h2>Questions</h2></div>
+    <div class="faq">
+      <details><summary>Is it really free?</summary><p>Yes. No account, no subscription, no SwipeSpeak server. Cloud dictation and ✨ summaries use your own free Groq key.</p></details>
+      <details><summary>Which Macs does it run on?</summary><p>macOS 14 Sonoma or later, on Apple silicon (M1 or later).</p></details>
+      <details><summary>Why does macOS ask me to “Open Anyway”?</summary><p>SwipeSpeak isn't from the App Store, so the first time you open it macOS blocks it. Go to System Settings › Privacy &amp; Security, scroll down and click <b>Open Anyway</b>. You only do this once.</p></details>
+      <details><summary>Do I need an API key?</summary><p>Only for fast cloud dictation and ✨ summaries: a free key from <a href="https://console.groq.com/keys" rel="noopener">console.groq.com/keys</a>. Offline dictation and reading aloud need no key.</p></details>
+      <details><summary>Does my text leave my Mac?</summary><p>Reading aloud happens on your Mac. Text is sent only for ✨ summaries (to Groq). Dictation audio goes to Groq in cloud mode, or stays on your Mac in offline mode.</p></details>
+      <details><summary>Which voice reads to me?</summary><p>Your Mac's own Spoken Content voice (the Siri voices), at the speed you've set. Speak Selection must be on in System Settings › Accessibility › Spoken Content; the Setup Guide helps.</p></details>
+      <details><summary>Which apps does it work in?</summary><p>Almost any app where you can type or select text: mail, chat, browsers, documents, notes, code editors and PDFs.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FINAL ================= -->
+<section class="final" data-anim id="finalSec">
+  <img class="fi" src="../../assets/icon.png" alt="SwipeSpeak">
+  <div class="fwave"><canvas class="wave" id="fWave"></canvas></div>
+  <a class="dl lg" href="https://github.com/lman80/SwipeSpeak-app/releases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg><span class="dl-label">Download</span></a>
+  <div class="meta">Free · macOS 14+ · Apple silicon</div>
+</section>
+
+<footer><div class="wrap"><span>SwipeSpeak · free for Mac</span><span><a href="https://github.com/lman80/SwipeSpeak-app/releases">Releases</a></span></div></footer>
+
+<script>
+(function(){
+"use strict";
+var RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var RELEASES = 'https://github.com/lman80/SwipeSpeak-app/releases';
+
+/* ---------- download buttons ---------- */
+function setDL(href,label){
+  document.querySelectorAll('a.dl').forEach(function(a){ a.href=href; var s=a.querySelector('.dl-label'); if(s) s.textContent=label; });
+}
+fetch('https://api.github.com/repos/lman80/SwipeSpeak-app/releases/latest',{headers:{'Accept':'application/vnd.github+json'}})
+  .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+  .then(function(j){
+    var a=(j.assets||[]).filter(function(x){return /\.(zip|dmg)$/i.test(x.name);})[0];
+    if(!a) throw 0;
+    var v=String(j.tag_name||j.name||'').replace(/^v/i,'');
+    setDL(a.browser_download_url, ('Download SwipeSpeak '+v).trim());
+  })
+  .catch(function(){ setDL(RELEASES,'Coming soon'); });
+
+/* ---------- helpers ---------- */
+function clamp(x,a,b){return x<a?a:x>b?b:x;}
+function seg(t,a,b){return clamp((t-a)/(b-a),0,1);}
+function ease(x){return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;}
+function lerp(a,b,p){return a+(b-a)*p;}
+function speech(t){ return 0.3+0.7*Math.abs(Math.sin(t*5.3)*Math.sin(t*1.9+.7)+0.25*Math.sin(t*13.1)); }
+function tog(el,c,on){ if(el.classList.contains(c)!==!!on) el.classList.toggle(c,!!on); }
+function splitWords(el,cls){
+  var words=el.textContent.trim().split(/\s+/); el.textContent='';
+  return words.map(function(w,i){ var s=document.createElement('span'); s.className=cls; s.textContent=w+(i<words.length-1?' ':''); el.appendChild(s); return s; });
+}
+function mkBars(el,n,tag){ var a=[]; for(var i=0;i<n;i++){ var b=document.createElement(tag||'i'); el.appendChild(b); a.push(b);} return a; }
+function setBars(bars,t,amp,min){
+  for(var i=0;i<bars.length;i++){
+    var nz=Math.abs(Math.sin(i*1.7+t*9.1)*Math.cos(i*.63-t*5.3))*0.8+0.2;
+    var bell=Math.sin(Math.PI*(i+.5)/bars.length);
+    bars[i].style.transform='scaleY('+Math.max(min||.12,amp*nz*(.5+.5*bell)).toFixed(3)+')';
+  }
+}
+
+/* ---------- canvas waveform ---------- */
+function Wave(cv,n,stops){
+  var ctx=cv.getContext('2d'), W=0,H=0,dpr=1,self={};
+  function size(){ var r=cv.getBoundingClientRect(); dpr=Math.min(2,window.devicePixelRatio||1); W=r.width; H=r.height; cv.width=Math.max(1,Math.round(W*dpr)); cv.height=Math.max(1,Math.round(H*dpr)); self.grad=null; if(self.onresize) self.onresize(); }
+  if(window.ResizeObserver) new ResizeObserver(size).observe(cv); size();
+  self.draw=function(t,amp){
+    if(!W||!H) return;
+    ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+    if(!self.grad){ var g=ctx.createLinearGradient(0,0,W,0); stops.forEach(function(s,i){g.addColorStop(i/(stops.length-1),s);}); self.grad=g; }
+    ctx.fillStyle=self.grad; ctx.beginPath();
+    var gap=W/n, bw=Math.max(2,gap*.5);
+    for(var i=0;i<n;i++){
+      var c=i/(n-1), bell=Math.pow(Math.sin(Math.PI*(.04+.92*c)),.7);
+      var nz=Math.abs(Math.sin(i*1.37+t*8.3)*Math.cos(i*.41-t*5.1)+.35*Math.sin(i*.23+t*12.7));
+      var h=Math.min(H, Math.max(bw, H*.95*amp*bell*nz + bw*.4));
+      var x=i*gap+(gap-bw)/2, y=(H-h)/2;
+      if(ctx.roundRect) ctx.roundRect(x,y,bw,h,bw/2); else ctx.rect(x,y,bw,h);
+    }
+    ctx.fill();
+  };
+  return self;
+}
+
+/* ---------- scheduler (≈30 fps, only visible scenes) ---------- */
+var scenes=[], raf=0, prev=0, acc=0;
+function addScene(el,period,render,staticT){ var s={el:el,period:period,render:render,staticT:staticT,t:0,vis:false}; scenes.push(s); return s; }
+function frame(now){
+  raf=0; var dt=prev?Math.min(now-prev,100):0; prev=now; acc+=dt;
+  if(acc>=31){ var step=acc/1000; acc=0;
+    for(var i=0;i<scenes.length;i++){ var s=scenes[i]; if(s.vis){ s.t=(s.t+step)%s.period; s.render(s.t); } } }
+  if(scenes.some(function(s){return s.vis;})) raf=requestAnimationFrame(frame); else prev=0;
+}
+function kick(){ if(!raf && !RM){ prev=0; acc=31; raf=requestAnimationFrame(frame); } }
+
+/* ================= HERO ================= */
+(function(){
+  var stage=document.getElementById('hero'), core=document.getElementById('hCore');
+  var fn=document.getElementById('hFn'), box=document.getElementById('hBox');
+  var dWords=splitWords(document.getElementById('hDictText'),'dw');
+  var rWords=splitWords(document.getElementById('hReadText'),'w');
+  var rtext=document.getElementById('hRText'), pill=document.getElementById('hPill'), ptr=document.getElementById('hPtr');
+  var hot=pill.children[0];
+  var wL=Wave(document.getElementById('hWaveL'),34,['#5fd4ff','#4d8dff','#8f6bff']);
+  var wR=Wave(document.getElementById('hWaveR'),48,['#8f6bff','#ff5ea8','#ffb86b']);
+  var NSEL=13; // first sentence
+  var geo=null; function G(){ if(!geo){ geo={ends:rWords.map(function(s){return {x:s.offsetLeft+s.offsetWidth-(s.textContent.slice(-1)===' '?5:0), y:s.offsetTop+s.offsetHeight*.55, x0:s.offsetLeft};}), w:rtext.clientWidth, h:rtext.clientHeight, pw:pill.offsetWidth||120}; } return geo; }
+  if(window.ResizeObserver) new ResizeObserver(function(){geo=null; if(RM) s.render(s.staticT);}).observe(rtext);
+  var lastClick=false;
+  function render(t){
+    // --- dictation (left)
+    var down=t>=.5&&t<3.9;
+    tog(fn,'down',down);
+    var aL=seg(t,.6,.9)*(1-seg(t,3.6,3.95))*speech(t);
+    wL.draw(t,Math.max(.05,aL));
+    var shown=t<.9?0:Math.ceil(seg(t,.9,3.7)*dWords.length);
+    for(var i=0;i<dWords.length;i++) tog(dWords[i],'in',i<shown);
+    tog(box,'final',t>=3.9); tog(box,'fade',t>=11.5);
+    // --- read aloud (right)
+    var g=G(), e=g.ends;
+    var selN=t<4.3?0:Math.min(NSEL,Math.ceil(seg(t,4.3,5.6)*NSEL));
+    var speakStart=6.9, per=.33, li=Math.floor((t-speakStart)/per), speaking=t>=speakStart&&li<NSEL;
+    for(var k=0;k<rWords.length;k++){
+      var w=rWords[k];
+      tog(w,'sel',k<selN && !(t>=speakStart && k<li));
+      tog(w,'lit',speaking && k===li);
+      tog(w,'done',t>=speakStart && k<li && k<NSEL);
+    }
+    tog(rtext,'fade',t>=11.4);
+    // pointer path
+    var rest={x:g.w*.78,y:g.h+10}, start={x:e[0].x0-2,y:e[0].y-4};
+    var P=e[NSEL-1], pillX=Math.min(P.x+30,g.w-g.pw-6), pillY=clamp(P.y+10,6,g.h-44);
+    var zone={x:pillX+20,y:pillY+19}, px,py,op=1;
+    if(t<3.5){px=rest.x;py=rest.y;op=0;}
+    else if(t<4.3){var p=ease(seg(t,3.5,4.2));px=lerp(rest.x,start.x,p);py=lerp(rest.y,start.y,p);op=seg(t,3.5,3.7);}
+    else if(t<5.6){var f=seg(t,4.3,5.6)*NSEL, j=Math.floor(f), fr=f-j; var a=j===0?start:e[j-1], b=e[Math.min(j,NSEL-1)]; px=lerp(a.x,b.x,fr); py=lerp(a.y,b.y,fr)-4;}
+    else if(t<6.0){var p2=seg(t,5.6,6.0);px=lerp(P.x,P.x+18,p2);py=lerp(P.y-4,P.y+10,p2);}
+    else if(t<6.45){var p3=ease(seg(t,6.0,6.45));px=lerp(P.x+18,zone.x,p3);py=lerp(P.y+10,zone.y,p3);}
+    else if(t<8){px=zone.x;py=zone.y;}
+    else {var p4=ease(seg(t,8,9.5));px=lerp(zone.x,g.w*.8,p4);py=lerp(zone.y,g.h+20,p4);op=1-seg(t,8.8,9.5);}
+    ptr.style.transform='translate('+px.toFixed(1)+'px,'+py.toFixed(1)+'px)'; ptr.style.opacity=op;
+    var click=t>=6.6&&t<7.1; if(click!==lastClick){ tog(ptr,'click',click); lastClick=click; }
+    pill.style.left=pillX+'px'; pill.style.top=pillY+'px';
+    tog(pill,'on',t>=5.75&&t<6.95); tog(hot,'hot',t>=6.4&&t<6.95); tog(hot,'fire',t>=6.6&&t<6.95);
+    var aR=speaking?seg(t,speakStart,speakStart+.3)*speech(t*1.1+2):0;
+    wR.draw(t,Math.max(.05,aR*(1-seg(t,speakStart+NSEL*per-.3,speakStart+NSEL*per))));
+    // core
+    var amp=Math.max(aL,aR);
+    core.style.setProperty('--amp',amp.toFixed(3));
+    tog(stage,'l-on',aL>.02); tog(stage,'r-on',aR>.02);
+  }
+  var s=addScene(document.getElementById('top'),12,render,8.2);
+})();
+
+/* ================= NOTCH ================= */
+(function(){
+  var wings=document.getElementById('nWings'), fn=document.getElementById('nFn');
+  var bars=mkBars(document.getElementById('nBars'),window.innerWidth<620?14:22);
+  var words=splitWords(document.getElementById('nText'),'dw'), body=document.getElementById('nBody');
+  function render(t){
+    var down=t>=.6&&t<4.4;
+    tog(fn,'down',down);
+    tog(wings,'open',t>=.7&&t<5.0);
+    tog(wings,'proc',t>=4.4&&t<5.0);
+    var a=seg(t,.9,1.2)*(1-seg(t,4.1,4.4))*speech(t);
+    if(t>=4.4&&t<5.0){ for(var i=0;i<bars.length;i++){ bars[i].style.transform='scaleY('+(.12+.1*Math.max(0,Math.sin(t*14-i*.6))).toFixed(3)+')'; } }
+    else setBars(bars,t,a,.12);
+    var shown=t<5.0?0:Math.ceil(seg(t,5.0,5.55)*words.length);
+    for(var k=0;k<words.length;k++) tog(words[k],'in',k<shown);
+    tog(body,'fade',t>=8.0);
+    body.style.opacity=t>=8.0?1-seg(t,8.0,8.4):1;
+  }
+  addScene(document.getElementById('dictation'),8.6,render,6.5);
+  // static frame that shows the wings open (reduced motion)
+  if(RM){ addScene._notchStatic=function(){ tog(wings,'open',true); setBars(bars,1.3,.9,.12); for(var k=0;k<words.length;k++) tog(words[k],'in',k<9); }; }
+})();
+
+/* ================= BUBBLE ================= */
+(function(){
+  var body=document.getElementById('bBody'), ptr=document.getElementById('bPtr'), pill=document.getElementById('bPill'), hud=document.getElementById('bHud');
+  var hot=pill.children[0];
+  var words=splitWords(document.getElementById('bText'),'w');
+  var hbars=mkBars(document.getElementById('bHudBars'),9);
+  var NSEL=17; // "Beat ... time."
+  var geo=null; function G(){ if(!geo){ geo={ends:words.map(function(s){return {x:s.offsetLeft+s.offsetWidth-(s.textContent.slice(-1)===' '?6:0), y:s.offsetTop+s.offsetHeight*.55, x0:s.offsetLeft};}), w:body.clientWidth, h:body.clientHeight, pw:pill.offsetWidth||120}; } return geo; }
+  if(window.ResizeObserver) new ResizeObserver(function(){geo=null; if(RM) sc.render(sc.staticT);}).observe(body);
+  var lastClick=false;
+  function render(t){
+    var g=G(), e=g.ends;
+    var selN=t<.8?0:Math.min(NSEL,Math.ceil(seg(t,.8,2.5)*NSEL));
+    var st=3.9, per=.34, li=Math.floor((t-st)/per), speaking=t>=st&&li<NSEL;
+    for(var k=0;k<words.length;k++){
+      tog(words[k],'sel',k<selN&&!(t>=st&&k<li)&&t<10.3);
+      tog(words[k],'lit',speaking&&k===li);
+      tog(words[k],'done',t>=st&&k<li&&k<NSEL&&t<10.3);
+    }
+    var P=e[NSEL-1], start={x:e[0].x0-2,y:e[0].y-4}, rest={x:g.w*.55,y:g.h+10};
+    var pillX=Math.min(P.x+34,g.w-g.pw-8), pillY=clamp(P.y+12,8,g.h-46), zone={x:pillX+20,y:pillY+19};
+    var px,py,op=1;
+    if(t<.8){var p=ease(seg(t,.1,.75));px=lerp(rest.x,start.x,p);py=lerp(rest.y,start.y,p);op=seg(t,.1,.3);}
+    else if(t<2.5){var f=seg(t,.8,2.5)*NSEL,j=Math.floor(f),fr=f-j;var a=j===0?start:e[j-1],b=e[Math.min(j,NSEL-1)];px=lerp(a.x,b.x,fr);py=lerp(a.y,b.y,fr)-4;}
+    else if(t<2.95){var p2=seg(t,2.5,2.95);px=lerp(P.x,P.x+22,p2);py=lerp(P.y-4,P.y+12,p2);}
+    else if(t<3.35){var p3=ease(seg(t,2.95,3.35));px=lerp(P.x+22,zone.x,p3);py=lerp(P.y+12,zone.y,p3);}
+    else if(t<4.6){px=zone.x;py=zone.y;}
+    else {var p4=ease(seg(t,4.6,6));px=lerp(zone.x,g.w*.9,p4);py=lerp(zone.y,g.h+30,p4);op=1-seg(t,5.3,6);}
+    ptr.style.transform='translate('+px.toFixed(1)+'px,'+py.toFixed(1)+'px)'; ptr.style.opacity=op;
+    var click=t>=3.5&&t<4; if(click!==lastClick){tog(ptr,'click',click);lastClick=click;}
+    pill.style.left=pillX+'px'; pill.style.top=pillY+'px';
+    tog(pill,'on',t>=2.7&&t<3.85); tog(hot,'hot',t>=3.3&&t<3.85); tog(hot,'fire',t>=3.5&&t<3.85);
+    tog(hud,'on',t>=3.8&&t<st+NSEL*per+.4);
+    setBars(hbars,t,speaking?speech(t):0,.15);
+  }
+  var sc=addScene(document.getElementById('read'),11.2,render,6.2);
+})();
+
+/* ================= SUMMARY ================= */
+(function(){
+  var box=document.getElementById('sScene'), pill=document.getElementById('sPill'), ptr=document.getElementById('sPtr'), rd=document.getElementById('sRead');
+  var spark=pill.children[1], lis=box.querySelectorAll('.bullets li'), bars=mkBars(document.getElementById('sBars'),9);
+  var lastClick=false;
+  function render(t){
+    tog(box,'sel',t>=.4&&t<2.5);
+    tog(pill,'on',t>=1.1&&t<2.45);
+    tog(spark,'hot',t>=1.9&&t<2.45); tog(spark,'fire',t>=2.1&&t<2.45);
+    tog(box,'collapse',t>=2.5&&t<9.9);
+    tog(box,'bul',t>=3.1&&t<9.6);
+    var st=3.9, li=Math.floor((t-st)/1.7);
+    for(var i=0;i<lis.length;i++) tog(lis[i],'lit',t>=st&&li===i);
+    var reading=t>=st&&t<st+5.1;
+    tog(rd,'on',reading);
+    setBars(bars,t,reading?speech(t):0,.15);
+    var W=box.clientWidth,H=box.clientHeight;
+    var zx=pill.offsetLeft+pill.offsetWidth/2, zy=pill.offsetTop+19;
+    var sx=W*.55, sy=H*.45, px,py,op=1;
+    if(t<1.2){px=sx;py=sy;op=seg(t,.2,.5);}
+    else if(t<1.9){var p=ease(seg(t,1.2,1.85));px=lerp(sx,zx,p);py=lerp(sy,zy,p);}
+    else if(t<2.9){px=zx;py=zy;}
+    else {var p2=ease(seg(t,2.9,3.9));px=lerp(zx,W+30,p2);py=lerp(zy,zy+20,p2);op=1-seg(t,3.2,3.8);}
+    ptr.style.transform='translate('+px.toFixed(1)+'px,'+py.toFixed(1)+'px)'; ptr.style.opacity=op;
+    var click=t>=2.1&&t<2.6; if(click!==lastClick){tog(ptr,'click',click);lastClick=click;}
+  }
+  addScene(document.getElementById('summary'),10.6,render,4.3);
+})();
+
+/* ================= GESTURES ================= */
+var NS='http://www.w3.org/2000/svg';
+function sv(tag,attrs,parent){ var e=document.createElementNS(NS,tag); for(var k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
+var PTR='M0 0 L0 15.5 L3.9 11.9 L6.6 18 L9.2 16.9 L6.6 10.9 L11.8 10.9 Z';
+function mkPtr(g){ return sv('path',{d:PTR,fill:'#fff',stroke:'#000','stroke-width':1,'stroke-linejoin':'round'},g); }
+
+(function(){ // scroll
+  var lines=document.getElementById('gsLines'), sel=document.getElementById('gsSel');
+  var ys=[24,46,68,90,112], ws=[140,150,128,146,96], sels=[];
+  ys.forEach(function(y,i){ sv('rect',{x:20,y:y,width:ws[i],height:8,rx:4,fill:'rgba(255,255,255,.2)'},lines); sels.push(sv('rect',{x:14,y:y-5,width:ws[i]+12,height:18,rx:4,fill:'rgba(77,141,255,.45)',opacity:0},sel)); });
+  var wheel=document.getElementById('gsWheel'), chev=document.getElementById('gsChev');
+  function render(t){
+    var n=t<.5?1:1+Math.min(4,Math.floor((t-.5)/.6)+1);
+    if(t>=4.1) n=0;
+    for(var i=0;i<sels.length;i++) sels[i].setAttribute('opacity',i<n?1:0);
+    var ph=((t-.2)%.6)/.6, act=t>.2&&t<3.0;
+    wheel.setAttribute('transform','translate(0 '+(act?(ph*8).toFixed(2):0)+')'); wheel.setAttribute('opacity',act?(1-ph*.7).toFixed(2):1);
+    chev.setAttribute('opacity',act?(1-ph).toFixed(2):0); chev.setAttribute('transform','translate(0 '+(act?(ph*6).toFixed(2):0)+')');
+  }
+  addScene(document.getElementById('gScroll'),4.5,render,2.8);
+})();
+
+(function(){ // shake
+  var bg=document.getElementById('gkBars'), pill=document.getElementById('gkPill'), stop=document.getElementById('gkStop');
+  var ghosts=document.getElementById('gkGhosts'), pg=document.getElementById('gkPtr');
+  var bars=[]; for(var i=0;i<16;i++) bars.push(sv('rect',{x:74+i*7.3,y:37,width:3.4,height:24,rx:1.7,fill:'#ff5ea8'},bg));
+  var gh=[sv('g',{opacity:.25},ghosts),sv('g',{opacity:.12},ghosts)]; gh.forEach(mkPtr); mkPtr(pg);
+  function render(t){
+    var shaking=t>=1.1&&t<2.1, stopped=t>=2.1&&t<4.2;
+    var env=shaking?Math.sin(Math.PI*seg(t,1.1,2.1)):0;
+    var dx=Math.sin(t*34)*22*env, bx=130, by=92;
+    pg.setAttribute('transform','translate('+(bx+dx).toFixed(1)+' '+by+')');
+    gh[0].setAttribute('transform','translate('+(bx+Math.sin((t-.03)*34)*22*env).toFixed(1)+' '+by+')');
+    gh[1].setAttribute('transform','translate('+(bx+Math.sin((t-.06)*34)*22*env).toFixed(1)+' '+by+')');
+    gh[0].setAttribute('opacity',shaking?.28:0); gh[1].setAttribute('opacity',shaking?.14:0);
+    var a=stopped?0:speech(t);
+    for(var i=0;i<bars.length;i++){ var nz=Math.abs(Math.sin(i*1.7+t*9)*Math.cos(i*.6-t*5))*.8+.2; var h=stopped?0:Math.max(3,24*a*nz); bars[i].setAttribute('height',h.toFixed(1)); bars[i].setAttribute('y',(49-h/2).toFixed(1)); }
+    stop.setAttribute('opacity',stopped?1:0);
+    pill.setAttribute('fill',stopped?'rgba(255,77,94,.12)':'rgba(255,94,168,.12)');
+    pill.setAttribute('stroke',stopped?'rgba(255,77,94,.6)':'rgba(255,94,168,.45)');
+  }
+  addScene(document.getElementById('gShake'),4.6,render,1.5);
+})();
+
+(function(){ // circle
+  var lines=document.getElementById('gcLines'), selg=document.getElementById('gcSel');
+  var sents=[[26,40],[62,76],[98,112]], sw=[[118,92],[110,70],[120,84]], hl=[];
+  sents.forEach(function(s,i){ hl.push(sv('rect',{x:12,y:s[0]-7,width:136,height:36,rx:6,fill:'rgba(95,212,255,.16)',stroke:'rgba(95,212,255,.5)',opacity:0},selg));
+    sv('rect',{x:20,y:s[0],width:sw[i][0],height:8,rx:4,fill:'rgba(255,255,255,.22)'},lines); sv('rect',{x:20,y:s[1],width:sw[i][1],height:8,rx:4,fill:'rgba(255,255,255,.22)'},lines); });
+  var cw=document.getElementById('gcCW'), ccw=document.getElementById('gcCCW'), lbl=document.getElementById('gcLbl'), pg=document.getElementById('gcPtr'); mkPtr(pg);
+  var C=2*Math.PI*38, cx=196, cy=70, r=38;
+  function render(t){
+    var ang, cur;
+    var p1=ease(seg(t,.3,1.8)), p2=ease(seg(t,2.6,4.1));
+    if(t<2.6){ ang=-Math.PI/2+p1*2*Math.PI; } else { ang=-Math.PI/2-p2*2*Math.PI; }
+    cur = t<1.9?0 : t<4.2?1 : 0;
+    for(var i=0;i<3;i++) hl[i].setAttribute('opacity',i===cur?1:0);
+    // highlight glow colors per direction
+    hl[cur].setAttribute('fill',t>=4.2?'rgba(255,94,168,.16)':'rgba(95,212,255,.16)');
+    hl[cur].setAttribute('stroke',t>=4.2?'rgba(255,94,168,.55)':'rgba(95,212,255,.5)');
+    cw.setAttribute('stroke-dashoffset',(C*(1-(t<2.4?p1:0))).toFixed(1));
+    ccw.setAttribute('stroke-dashoffset',(C*(1-(t>=2.4&&t<4.9?p2:0))).toFixed(1));
+    cw.setAttribute('opacity',t<2.4?1-seg(t,2.0,2.4):0); ccw.setAttribute('opacity',t>=2.4?1-seg(t,4.5,4.9):0);
+    var x=cx+r*Math.cos(ang), y=cy+r*Math.sin(ang);
+    pg.setAttribute('transform','translate('+x.toFixed(1)+' '+y.toFixed(1)+')');
+    var showNext=t>=1.8&&t<2.5, showBack=t>=4.1&&t<4.9;
+    lbl.textContent=showBack?'↺ previous':'↻ next';
+    lbl.setAttribute('fill',showBack?'#ff5ea8':'#5fd4ff');
+    lbl.setAttribute('opacity',(showNext||showBack)?1:0);
+  }
+  addScene(document.getElementById('gCircle'),5,render,1.95);
+})();
+
+/* ================= SPEED ================= */
+(function(){
+  var sentence="Thanks for the photos from Sunday — the kids loved the lake, and we'd love to come back soon.";
+  var sw=sentence.split(' '), N=sw.length;
+  var tEl=document.getElementById('spType'), sEl=document.getElementById('spSpeak'), tb=document.getElementById('spTypeBar'), sb=document.getElementById('spSpeakBar');
+  var lastT=-1,lastS=-1, caret='<i class="caret"></i>';
+  function render(t){
+    var dt=clamp(t-.5,0,N/2.5), fade=t>=9.2;
+    var chars=fade?0:Math.floor(dt*(40*5/60)); // ~5 chars per word
+    var words=fade?0:Math.min(N,Math.floor(dt*2.5));
+    if(chars!==lastT){ tEl.innerHTML=sentence.slice(0,chars).replace(/</g,'&lt;')+caret; lastT=chars; }
+    if(words!==lastS){ sEl.innerHTML=sw.slice(0,words).join(' ')+caret; lastS=words; }
+    var wt=sentence.slice(0,chars).split(' ').length-(chars?0:1);
+    tb.style.transform='scaleX('+(fade?0:Math.min(1,chars/sentence.length)).toFixed(3)+')';
+    sb.style.transform='scaleX('+(words/N).toFixed(3)+')';
+  }
+  addScene(document.getElementById('speed'),9.8,render,8.3);
+})();
+
+/* ================= ORBIT ================= */
+(function(){
+  var inner=['Mail','Messages','Notes','Safari','Slack','Word','Chrome','Notion'];
+  var outer=['Google Docs','ChatGPT','Claude','VS Code','Cursor','Discord','Teams','PDFs','Pages','Outlook'];
+  function fill(ring,names,off){ names.forEach(function(n,i){ var o=document.createElement('div'); o.className='o'+(i%3===0?' hl':i%3===1?'':' hp'); o.style.setProperty('--a',(off+i*360/names.length)+'deg'); o.innerHTML='<span><b>'+n+'</b></span>'; ring.appendChild(o); }); }
+  fill(document.getElementById('ring1'),inner,10); fill(document.getElementById('ring2'),outer,0);
+})();
+
+/* ================= FINAL WAVE ================= */
+(function(){
+  var w=Wave(document.getElementById('fWave'),64,['#5fd4ff','#4d8dff','#8f6bff','#ff5ea8']);
+  addScene(document.getElementById('finalSec'),20,function(t){ w.draw(t,.45+.35*speech(t*.6)); },3);
+})();
+
+/* ---------- visibility ---------- */
+var animEls=document.querySelectorAll('[data-anim]');
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(ents){
+    ents.forEach(function(en){
+      scenes.forEach(function(s){ if(s.el===en.target){ s.vis=en.isIntersecting; if(s.vis) s.render(RM?s.staticT:s.t); } });
+      if(en.target.hasAttribute('data-anim')) en.target.classList.toggle('paused',!en.isIntersecting);
+    });
+    kick();
+  },{rootMargin:'60px'});
+  scenes.forEach(function(s){ io.observe(s.el); });
+  animEls.forEach(function(el){ io.observe(el); });
+} else { scenes.forEach(function(s){ s.vis=true; }); kick(); }
+
+if(RM){
+  var renderStatic=function(){ scenes.forEach(function(s){ s.render(s.staticT); }); if(addScene._notchStatic) addScene._notchStatic(); };
+  window.addEventListener('load',renderStatic);
+  var rt; window.addEventListener('resize',function(){ clearTimeout(rt); rt=setTimeout(renderStatic,150); });
+  renderStatic();
+}
+})();
+</script>
+</body>
+</html>

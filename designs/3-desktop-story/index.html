@@ -1,0 +1,1021 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SwipeSpeak — Talk to type. Select to hear. Free for Mac.</title>
+<meta name="description" content="SwipeSpeak is a free macOS menu bar app. Hold a key and talk: your words are typed in any app. Select any text and glide onto the bubble: your Mac reads it aloud. No account, no subscription.">
+<meta name="theme-color" content="#1b2a6b">
+<link rel="icon" type="image/png" href="../../assets/favicon.png">
+<link rel="apple-touch-icon" href="../../assets/icon.png">
+<style>
+:root{
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,"Segoe UI",sans-serif;
+  --blue:#0a7aff; --blue2:#2f6bff; --ink:#111318; --ink2:#5b6070; --line:rgba(17,19,24,.08);
+  --bg:#f5f5f7; --card:#fff; --sel:#b3d7ff; --red:#ff453a; --green:#30d158;
+  --mb:34px;           /* menu bar height */
+  --notch:188px;       /* notch width */
+  --wing:112px;        /* each wing */
+  --story:880vh;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:var(--font);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+button{font:inherit}
+svg{display:block}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ============ STORY / STAGE ============ */
+.story{position:relative;height:var(--story)}
+.stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;isolation:isolate;background:#1a2358;user-select:none;-webkit-user-select:none}
+.wall{position:absolute;inset:0;z-index:0;
+  background:
+   radial-gradient(60% 55% at 12% 108%, #ff8a5c 0%, rgba(255,138,92,0) 70%),
+   radial-gradient(55% 60% at 95% 100%, #b04bff 0%, rgba(176,75,255,0) 70%),
+   radial-gradient(60% 55% at 78% 12%, #2f7bff 0%, rgba(47,123,255,0) 70%),
+   radial-gradient(50% 50% at 18% 18%, #3fd0ff 0%, rgba(63,208,255,0) 70%),
+   linear-gradient(165deg,#233a9c 0%,#3b2b8f 45%,#1a1b52 100%)}
+.wall svg{position:absolute;inset:auto 0 0 0;width:100%;height:62%;opacity:.9}
+.wall::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,rgba(0,0,0,0) 55%,rgba(5,6,30,.35) 100%)}
+
+/* menu bar */
+.menubar{position:absolute;top:0;left:0;right:0;height:var(--mb);z-index:30;display:flex;align-items:center;justify-content:space-between;padding:0 14px;color:#fff;font-size:13.5px;
+  background:rgba(20,24,60,.22);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%)}
+.mb-l,.mb-r{display:flex;align-items:center;gap:18px;white-space:nowrap}
+.mb-l b{font-weight:700}
+.mb-l span{opacity:.92}
+.mb-r{gap:14px}
+.mb-r svg{height:15px;width:auto}
+.mb-ss{position:relative;display:grid;place-items:center;width:26px;height:22px;border-radius:5px}
+.mb-ss.on{background:rgba(255,255,255,.22)}
+.mb-ss svg{height:16px}
+.mb-time{font-variant-numeric:tabular-nums}
+
+/* notch + wings */
+.island{position:absolute;top:0;left:50%;width:var(--notch);height:var(--mb);transform:translateX(-50%);z-index:40}
+.notch{position:absolute;inset:0;background:#000;border-radius:0 0 14px 14px;z-index:2}
+.notch::before,.notch::after{content:"";position:absolute;top:0;width:10px;height:10px;background:radial-gradient(circle at 0 100%,transparent 9.5px,#000 10px)}
+.notch::before{left:-10px;background:radial-gradient(circle at 0 100%,transparent 9.5px,#000 10px)}
+.notch::after{right:-10px;background:radial-gradient(circle at 100% 100%,transparent 9.5px,#000 10px)}
+.wing{position:absolute;top:0;height:var(--mb);width:var(--wing);background:#000;z-index:1;display:flex;align-items:center;will-change:transform}
+.wing.l{right:100%;border-radius:0 0 0 16px;justify-content:flex-start;padding-left:16px;transform:translateX(var(--wing))}
+.wing.r{left:100%;border-radius:0 0 16px 0;justify-content:flex-end;padding-right:14px;transform:translateX(calc(-1 * var(--wing)))}
+.wing .inner{opacity:0;display:flex;align-items:center;gap:3px}
+.bars{display:flex;align-items:center;gap:3px;height:18px}
+.bars i{display:block;width:3px;height:100%;border-radius:2px;background:#fff;transform:scaleY(.25);transform-origin:50% 50%}
+.rec .wing.l .bars i{animation:bar .9s ease-in-out infinite alternate}
+.bars i:nth-child(2){animation-delay:-.25s!important}.bars i:nth-child(3){animation-delay:-.55s!important}
+.bars i:nth-child(4){animation-delay:-.1s!important}.bars i:nth-child(5){animation-delay:-.7s!important}
+.bars i:nth-child(6){animation-delay:-.4s!important}.bars i:nth-child(7){animation-delay:-.8s!important}
+@keyframes bar{0%{transform:scaleY(.2)}50%{transform:scaleY(1)}100%{transform:scaleY(.4)}}
+.stop{width:22px;height:22px;border-radius:50%;background:rgba(255,69,58,.22);display:grid;place-items:center}
+.stop i{width:9px;height:9px;border-radius:2.5px;background:var(--red)}
+
+.live{position:absolute;top:calc(var(--mb) + 10px);left:50%;z-index:39;transform:translateX(-50%);max-width:min(560px,92vw);
+  padding:9px 16px 10px;border-radius:16px;background:rgba(14,14,18,.92);color:#fff;font-size:15px;line-height:1.35;opacity:0;
+  box-shadow:0 12px 32px rgba(0,0,0,.35);white-space:nowrap}
+.live .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:9px;vertical-align:1px}
+.live .lw{opacity:0;transition:opacity .18s}
+.live .lw.on{opacity:1}
+.live .lw.um{color:#9aa0ad}
+
+/* desk + windows */
+.desk{position:absolute;left:0;right:0;top:calc(var(--mb) + 24px);bottom:150px;z-index:10}
+.win{position:absolute;left:50%;top:0;background:#fff;border-radius:14px;overflow:hidden;
+  box-shadow:0 0 0 .5px rgba(0,0,0,.25),0 30px 70px -10px rgba(5,8,40,.55),0 10px 24px rgba(5,8,40,.25);will-change:transform,opacity}
+.tl{display:flex;gap:8px}
+.tl i{width:12px;height:12px;border-radius:50%;background:#ff5f57;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.15)}
+.tl i:nth-child(2){background:#febc2e}.tl i:nth-child(3){background:#28c840}
+
+/* Messages window */
+.msgs{width:min(600px,92vw);height:min(430px,100%);margin-left:calc(min(600px,92vw) / -2);display:flex;flex-direction:column;background:#fff}
+.msgs .bar{height:52px;display:flex;align-items:center;gap:14px;padding:0 16px;border-bottom:1px solid var(--line);background:#f6f6f8}
+.msgs .who{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;font-weight:600;font-size:14px;margin-right:52px}
+.avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(#a3a9b8,#7c8394);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700}
+.thread{flex:1;padding:20px 18px;display:flex;flex-direction:column;gap:8px;overflow:hidden;justify-content:flex-end}
+.bub{max-width:72%;padding:9px 14px;border-radius:19px;font-size:15px;line-height:1.3}
+.bub.them{background:#e9e9eb;align-self:flex-start;border-bottom-left-radius:6px}
+.bub.me{background:var(--blue);color:#fff;align-self:flex-end;border-bottom-right-radius:6px}
+.stamp{align-self:center;font-size:11px;color:#8e8e93;margin:2px 0 6px}
+.compose{position:relative;margin:0 14px 14px;min-height:40px;border:1px solid #d5d5da;border-radius:20px;padding:9px 16px;font-size:15px;line-height:1.4;color:var(--ink)}
+.compose .ph{color:#a1a1a8}
+.caret{display:inline-block;width:2px;height:1.15em;background:var(--blue);vertical-align:-3px;margin-left:1px;animation:blink 1.05s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.clean{position:absolute;right:10px;top:-34px;font-size:12px;font-weight:600;color:#1a7f37;background:#e6f7ea;border-radius:20px;padding:5px 10px;opacity:0;white-space:nowrap}
+
+/* Safari window */
+.safari{width:min(820px,94vw);height:min(560px,100%);margin-left:calc(min(820px,94vw) / -2);display:flex;flex-direction:column}
+.safari .bar{height:52px;display:flex;align-items:center;gap:16px;padding:0 16px;background:#f3f3f5;border-bottom:1px solid var(--line)}
+.url{flex:1;max-width:420px;margin:0 auto;height:30px;border-radius:9px;background:#e3e3e8;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;color:#555}
+.url svg{height:12px}
+.article{position:relative;flex:1;padding:30px clamp(20px,6%,64px) 20px;overflow:hidden}
+.kicker{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#c2410c;font-weight:700}
+.article h3{font-family:ui-serif,"New York",Georgia,serif;font-size:clamp(22px,2.4vw,30px);line-height:1.15;margin:8px 0 16px;letter-spacing:-.01em}
+.article p{font-family:ui-serif,"New York",Georgia,serif;font-size:clamp(15px,1.35vw,18px);line-height:1.62;margin:0 0 14px;color:#262a33}
+.w{transition:background-color .08s}
+.w.sel{background:var(--sel)}
+.w i{font-style:normal;border-radius:3px;transition:background-color .1s,color .1s}
+.w.rd i{background:var(--blue);color:#fff;box-shadow:0 0 0 2px var(--blue)}
+.skel{height:10px;border-radius:5px;background:#eceef2;margin:10px 0}
+
+/* pointer */
+.ptr{position:absolute;left:0;top:0;z-index:60;opacity:0;will-change:transform;pointer-events:none}
+.ptr svg{position:absolute;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.35))}
+.ptr .arrow{left:-2px;top:-1px;width:22px;height:32px}
+.ptr .beam{left:-5px;top:-11px;width:10px;height:22px;display:none}
+.ptr.text .arrow{display:none}.ptr.text .beam{display:block}
+
+/* read-aloud bubble (pill) */
+.pill{position:absolute;left:0;top:0;z-index:55;height:36px;display:flex;align-items:stretch;border-radius:18px;opacity:0;
+  background:rgba(250,250,252,.97);box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 8px 22px rgba(10,15,50,.28);transform-origin:18px 50%;will-change:transform,opacity}
+.pill .z{position:relative;display:grid;place-items:center;color:var(--blue);transition:background-color .12s,color .12s}
+.pill .z1{width:46px;border-radius:18px 0 0 18px}.pill .z2{width:42px;color:#b36bff}.pill .z3{width:32px;color:#8a8f9c;border-radius:0 18px 18px 0}
+.pill .z+.z{box-shadow:inset 1px 0 0 rgba(0,0,0,.08)}
+.pill .z.lit{background:var(--blue);color:#fff}
+.pill .z2.lit{background:linear-gradient(135deg,#8b5cf6,#d946ef);color:#fff}
+.pill svg{width:20px;height:20px}.pill .z3 svg{width:14px;height:14px}
+.ring{position:absolute;inset:3px;pointer-events:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke:rgba(255,255,255,.95);stroke-width:2.2;stroke-linecap:round}
+
+/* speaking controller */
+.ctl{position:absolute;top:calc(var(--mb) + 12px);right:16px;z-index:50;display:flex;align-items:center;gap:6px;padding:8px 10px 8px 14px;border-radius:14px;
+  background:rgba(28,28,32,.9);color:#fff;box-shadow:0 12px 28px rgba(0,0,0,.35);opacity:0;transform-origin:100% 0;will-change:transform,opacity}
+.ctl .lab{font-size:12.5px;font-weight:600;margin-right:6px;display:flex;align-items:center;gap:8px}
+.ctl .bars{height:14px;gap:2px}.ctl .bars i{width:2.5px}
+.speaking .ctl .bars i{animation:bar .7s ease-in-out infinite alternate}
+.ctl .b{width:30px;height:28px;border-radius:8px;display:grid;place-items:center;color:#e8e8ee;transition:background-color .1s}
+.ctl .b svg{width:16px;height:16px}
+.ctl .b.flash{background:var(--blue);color:#fff}
+
+/* summary panel */
+.sum{position:absolute;z-index:52;top:calc(var(--mb) + 120px);right:max(4%,calc(50% - 440px));width:min(350px,88vw);border-radius:16px;padding:16px 18px 14px;
+  background:rgba(255,255,255,.98);box-shadow:0 0 0 .5px rgba(0,0,0,.15),0 24px 60px rgba(10,15,60,.4);opacity:0;transform-origin:30% 0;will-change:transform,opacity}
+.sum h4{margin:0 0 10px;font-size:13px;display:flex;align-items:center;gap:7px;color:#7c3aed;letter-spacing:.02em}
+.sum h4 svg{width:16px;height:16px}
+.sum ul{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.sum li{display:flex;gap:10px;align-items:flex-start;font-size:15px;line-height:1.35;padding:6px 8px;border-radius:9px;transition:background-color .15s,color .15s}
+.sum li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:#a78bfa;margin-top:7px}
+.sum li.rd{background:#ede9fe;color:#4c1d95}
+.sum .shim{height:12px;border-radius:6px;background:linear-gradient(90deg,#eee 0,#f7f4ff 50%,#eee 100%);margin:10px 0}
+.sum .load{display:none}.sum.loading .load{display:block}.sum.loading ul{display:none}
+
+/* gesture props */
+.wheel{position:absolute;left:0;top:0;z-index:58;opacity:0;width:26px;height:40px;border:2px solid #fff;border-radius:13px;background:rgba(20,24,60,.55);box-shadow:0 6px 16px rgba(0,0,0,.3)}
+.wheel i{position:absolute;left:50%;top:7px;width:4px;height:9px;margin-left:-2px;border-radius:2px;background:#fff}
+.wheel b{position:absolute;left:50%;top:44px;margin-left:-6px;width:12px;height:12px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(45deg);opacity:.9}
+.trail{position:absolute;left:0;top:0;width:100%;height:100%;z-index:57;pointer-events:none;overflow:visible}
+.trail path{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))}
+.shake{position:absolute;left:0;top:0;z-index:57;opacity:0;pointer-events:none;color:#fff;font-size:22px;font-weight:800;letter-spacing:-2px;text-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+/* keycap */
+.key{position:absolute;z-index:45;bottom:176px;left:calc(50% - min(300px,46vw) - 130px);opacity:0;text-align:center;will-change:transform,opacity}
+.cap{position:relative;width:84px;height:84px;border-radius:16px;background:linear-gradient(#fbfbfd,#dcdde3);box-shadow:0 7px 0 #a9abb5,0 10px 22px rgba(0,0,0,.35),inset 0 1px 0 #fff;
+  transition:transform .12s,box-shadow .12s;color:#3a3d46}
+.cap .fn{position:absolute;right:12px;top:10px;font-size:17px;font-weight:600}
+.cap svg{position:absolute;left:12px;bottom:12px;width:20px;height:20px}
+.key.down .cap{transform:translateY(6px);box-shadow:0 1px 0 #a9abb5,0 3px 8px rgba(0,0,0,.3),inset 0 1px 0 #fff,0 0 0 4px rgba(10,122,255,.55),0 0 34px rgba(10,122,255,.6)}
+.key .kl{margin-top:16px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;opacity:.9}
+
+/* caption + rail */
+.cap-chip{position:absolute;z-index:46;left:50%;bottom:98px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;white-space:nowrap;
+  padding:8px 16px 8px 8px;border-radius:30px;background:rgba(255,255,255,.9);box-shadow:0 10px 30px rgba(10,15,60,.35);font-size:15px;font-weight:600;opacity:0;transition:opacity .25s}
+.cap-chip .n{display:grid;place-items:center;height:28px;padding:0 11px;border-radius:14px;background:var(--ink);color:#fff;font-size:12.5px;font-weight:700;letter-spacing:.02em}
+.cap-chip .t{transition:opacity .2s}
+.rail{position:absolute;z-index:46;right:22px;top:50%;transform:translateY(-50%);display:grid;gap:14px}
+.rail button{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;gap:10px;color:rgba(255,255,255,.62);font-size:12.5px;font-weight:600}
+.rail button i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.45);transition:transform .2s,background-color .2s}
+.rail button.on{color:#fff}.rail button.on i{background:#fff;transform:scale(1.5)}
+.rail button:focus-visible{outline:2px solid #fff;outline-offset:4px;border-radius:4px}
+
+/* dock */
+.dock{position:absolute;z-index:20;bottom:10px;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:10px;padding:8px 10px;border-radius:22px;
+  background:rgba(255,255,255,.2);-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);box-shadow:0 0 0 .5px rgba(255,255,255,.35) inset}
+.app{position:relative;width:52px;height:52px;border-radius:12px;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.app svg{width:30px;height:30px}
+.app.run::after{content:"";position:absolute;bottom:-6px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:rgba(255,255,255,.85)}
+.a1{background:linear-gradient(#5ee07a,#1db83d)}.a2{background:linear-gradient(#fff,#e7ecf5)}.a3{background:linear-gradient(#4fb2ff,#1668f0)}
+.a4{background:linear-gradient(#fff6c9,#ffd84a)}.a5{background:linear-gradient(#fff,#eee);flex-direction:column}.a6{background:linear-gradient(#b8bec9,#7b8290)}
+.a5 b{position:absolute;top:6px;font-size:8px;color:#ff3b30;letter-spacing:.05em}.a5 span{position:absolute;top:15px;font-size:24px;font-weight:300;color:#222}
+.dock .sep{width:1px;align-self:stretch;margin:4px 2px;background:rgba(255,255,255,.35)}
+.dock img{width:52px;height:52px;display:block}
+
+/* intro card */
+.intro{position:absolute;z-index:70;left:50%;top:50%;width:min(372px,88vw);transform:translate(-50%,-56%);padding:22px 22px 18px;border-radius:24px;text-align:left;
+  background:rgba(255,255,255,.74);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
+  box-shadow:0 0 0 .5px rgba(255,255,255,.7) inset,0 30px 80px rgba(8,10,50,.5);will-change:transform,opacity}
+.intro .row{display:flex;align-items:center;gap:14px}
+.intro img{width:66px;height:66px;flex:none;filter:drop-shadow(0 6px 12px rgba(20,60,200,.35))}
+.intro h1{margin:0;font-size:22px;letter-spacing:-.02em;line-height:1.1}
+.intro .tag{margin-top:4px;font-size:14.5px;color:#3d4250;font-weight:500}
+.intro .dl{margin-top:18px;width:100%}
+.intro .meta{margin-top:10px;font-size:12px;color:#5c6170;text-align:center}
+.eq{display:inline-flex;gap:2px;align-items:center;height:12px;margin-left:6px;vertical-align:-1px}
+.eq i{width:2.5px;height:100%;border-radius:2px;background:var(--blue);transform:scaleY(.3);animation:bar .8s ease-in-out infinite alternate}
+.eq i:nth-child(2){animation-delay:-.3s}.eq i:nth-child(3){animation-delay:-.6s}.eq i:nth-child(4){animation-delay:-.15s}
+.hint{position:absolute;z-index:70;left:50%;bottom:104px;transform:translateX(-50%);display:flex;align-items:center;gap:9px;color:#fff;font-size:13px;font-weight:600;opacity:.9}
+.mouse{width:20px;height:31px;border:2px solid #fff;border-radius:11px;position:relative}
+.mouse i{position:absolute;left:50%;top:5px;width:3px;height:7px;margin-left:-1.5px;border-radius:2px;background:#fff;animation:wheel 1.6s ease-in-out infinite}
+@keyframes wheel{0%{transform:translateY(0);opacity:1}70%{transform:translateY(9px);opacity:0}100%{opacity:0}}
+
+/* buttons */
+.dl{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:46px;padding:0 22px;border-radius:14px;border:0;cursor:pointer;text-decoration:none;
+  background:linear-gradient(#3b8bff,#0a66f0);color:#fff;font-weight:650;font-size:15.5px;box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 8px 22px rgba(10,102,240,.4);transition:transform .15s,box-shadow .15s}
+.dl:hover{transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 12px 28px rgba(10,102,240,.5)}
+.dl:focus-visible{outline:3px solid #9cc3ff;outline-offset:2px}
+.dl svg{width:17px;height:17px}
+.dl.soon{background:linear-gradient(#5b6272,#3b4150);box-shadow:0 8px 22px rgba(30,35,50,.3)}
+
+/* ============ SECTIONS ============ */
+section.s{padding:110px 22px;max-width:1140px;margin:0 auto}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
+h2{font-size:clamp(30px,4.4vw,48px);letter-spacing:-.03em;line-height:1.05;margin:10px 0 0}
+.sub{margin:10px 0 0;color:var(--ink2);font-size:17px}
+.head{margin-bottom:44px}
+
+/* every app */
+.apps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.mw{position:relative;background:#fff;border-radius:16px;box-shadow:0 0 0 1px var(--line),0 14px 34px -12px rgba(20,30,80,.2);overflow:visible;transition:transform .35s,box-shadow .35s}
+.mw.go{transform:translateY(-4px);box-shadow:0 0 0 2px rgba(10,122,255,.5),0 22px 44px -12px rgba(20,60,200,.35)}
+.mw .top{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid var(--line);font-size:13px;font-weight:650;color:#3a3e4a}
+.mw .top .tl i{width:9px;height:9px}
+.mw .ic{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;margin-left:auto}
+.mw .ic svg{width:13px;height:13px}
+.mw .body{padding:14px 16px 18px;min-height:112px}
+.mw .l{height:8px;border-radius:4px;background:#eef0f4;margin:0 0 9px}
+.mw .txt{position:relative;display:inline;font-size:14.5px;line-height:1.5;color:#1d2230;background-image:linear-gradient(var(--sel),var(--sel));background-repeat:no-repeat;background-size:0 100%;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone}
+.mw.dict .txt{clip-path:inset(0 100% 0 0);transition:clip-path 1.1s steps(28)}
+.mw.dict.go .txt{clip-path:inset(0 0 0 0)}
+.mw.read .txt{transition:background-size .7s ease-out}
+.mw.read.go .txt{background-size:100% 100%}
+.mw .badge{position:absolute;top:-13px;left:50%;transform:translate(-50%,-4px) scale(.9);opacity:0;display:flex;align-items:center;gap:7px;height:26px;padding:0 10px;border-radius:13px;background:#000;color:#fff;transition:opacity .25s,transform .25s}
+.mw .badge .bars{height:12px;gap:2px}.mw .badge .bars i{width:2px;animation:bar .8s ease-in-out infinite alternate}
+.mw .badge .stop{width:16px;height:16px}.mw .badge .stop i{width:6px;height:6px}
+.mw.dict.go .badge{opacity:1;transform:translate(-50%,0) scale(1);transition-delay:0s}
+.mw.dict.go.fin .badge{opacity:0}
+.mw .mpill{position:absolute;right:16px;bottom:-14px;display:flex;height:28px;border-radius:14px;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 6px 16px rgba(10,15,50,.22);opacity:0;transform:scale(.6);transform-origin:0 50%;transition:opacity .25s .75s,transform .3s .75s}
+.mw .mpill span{width:34px;display:grid;place-items:center;color:var(--blue);transition:background-color .15s 1.25s,color .15s 1.25s}
+.mw .mpill span:first-child{border-radius:14px 0 0 14px}.mw .mpill span:nth-child(2){color:#b36bff;box-shadow:inset 1px 0 0 rgba(0,0,0,.08)}
+.mw .mpill span:last-child{width:26px;color:#999;border-radius:0 14px 14px 0;box-shadow:inset 1px 0 0 rgba(0,0,0,.08)}
+.mw .mpill svg{width:15px;height:15px}.mw .mpill span:last-child svg{width:11px}
+.mw.read.go .mpill{opacity:1;transform:scale(1)}
+.mw.read.go .mpill span:first-child{background:var(--blue);color:#fff}
+.reset,.reset *{transition:none!important}
+.legend{display:flex;gap:22px;justify-content:center;margin-top:30px;font-size:14px;color:var(--ink2);font-weight:600;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:8px}
+.legend b{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#000;color:#fff}
+.legend b.r{background:var(--blue)}
+.legend svg{width:13px;height:13px}
+
+/* speed */
+.speed{display:grid;grid-template-columns:1fr 1.35fr;gap:40px;align-items:center;background:#0d1024;color:#fff;border-radius:30px;padding:48px;overflow:hidden;position:relative}
+.speed::before{content:"";position:absolute;inset:-40% -20% auto auto;width:70%;height:120%;background:radial-gradient(closest-side,rgba(47,107,255,.45),transparent);pointer-events:none}
+.speed .eyebrow{color:#7fb0ff}
+.big{font-size:clamp(64px,10vw,120px);font-weight:800;letter-spacing:-.05em;line-height:.9;background:linear-gradient(120deg,#fff,#8fb8ff 60%,#c4a6ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.big small{font-size:.32em;letter-spacing:-.01em;font-weight:700;-webkit-text-fill-color:#aeb6d6}
+.lanes{display:grid;gap:18px;position:relative}
+.lane{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:16px 18px}
+.lane .lh{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700}
+.lane .lh .ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:rgba(255,255,255,.12)}
+.lane .lh .ico svg{width:17px;height:17px}
+.lane .wpm{margin-left:auto;font-variant-numeric:tabular-nums;color:#aeb6d6;font-weight:600}
+.lane .wpm b{color:#fff;font-size:20px}
+.lane.sp .ico{background:linear-gradient(135deg,#3b8bff,#7c5cff)}
+.lane .tx{margin:12px 0 12px;min-height:48px;font-size:15.5px;line-height:1.5;color:#dfe4f5}
+.lane .tx .c{display:inline-block;width:2px;height:1.1em;background:#7fb0ff;vertical-align:-2px;margin-left:1px}
+.track{height:8px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden}
+.track i{display:block;height:100%;width:100%;border-radius:4px;background:#8a93b3;transform-origin:0 50%;transform:scaleX(0)}
+.lane.sp .track i{background:linear-gradient(90deg,#3b8bff,#9b7bff)}
+.done{display:inline-flex;align-items:center;gap:5px;margin-left:8px;font-size:12px;color:#7ef0a0;opacity:0;transition:opacity .2s}
+.done.on{opacity:1}
+
+/* strip */
+.strip{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.chip{background:#fff;border-radius:18px;padding:20px 12px 16px;text-align:center;box-shadow:0 0 0 1px var(--line);font-size:14px;font-weight:650;color:#262a36}
+.chip .ci{width:46px;height:46px;border-radius:14px;margin:0 auto 10px;display:grid;place-items:center;background:#eef4ff;color:var(--blue)}
+.chip .ci svg{width:24px;height:24px}
+.chip:nth-child(2) .ci{background:#f3eeff;color:#7c3aed}.chip:nth-child(3) .ci{background:#fff1ec;color:#e5572a}
+.chip:nth-child(4) .ci{background:#eafaf0;color:#1a9e4b}.chip:nth-child(5) .ci{background:#fff7e0;color:#c98a00}.chip:nth-child(6) .ci{background:#ecf6ff;color:#0a84c6}
+
+/* install */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:st}
+.step{background:#fff;border-radius:22px;box-shadow:0 0 0 1px var(--line);padding:16px 16px 20px}
+.step .pic{height:150px;border-radius:14px;background:linear-gradient(160deg,#eef3ff,#f6f0ff);display:grid;place-items:center;position:relative;overflow:hidden}
+.step h3{margin:16px 4px 4px;font-size:17px;letter-spacing:-.01em;display:flex;gap:10px;align-items:center}
+.step h3::before{counter-increment:st;content:counter(st);display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:13px}
+.step p{margin:0 4px;color:var(--ink2);font-size:14px;line-height:1.45}
+.zipflow{display:flex;align-items:center;gap:14px}
+.zipflow img{width:58px;height:58px}
+.zipflow .arr{color:#8a8fa0;font-size:22px}
+.folder{width:66px;height:52px;border-radius:8px;background:linear-gradient(#7cc4ff,#3f95f2);position:relative;box-shadow:0 4px 10px rgba(30,90,200,.25)}
+.folder::before{content:"";position:absolute;left:4px;top:-7px;width:26px;height:10px;border-radius:4px 4px 0 0;background:#6ab8fb}
+.folder span{position:absolute;inset:auto 0 6px;text-align:center;font-size:9px;color:#fff;font-weight:700}
+.settings{width:86%;background:#fff;border-radius:12px;box-shadow:0 8px 22px rgba(20,30,80,.14);padding:12px 14px;font-size:11.5px}
+.settings .crumb{color:#8a8fa0;font-weight:600;margin-bottom:8px}
+.settings .rowx{display:flex;align-items:center;gap:8px;justify-content:space-between;color:#333}
+.settings .ob{background:var(--blue);color:#fff;border-radius:7px;padding:5px 9px;font-weight:700;white-space:nowrap;box-shadow:0 0 0 3px rgba(10,122,255,.25)}
+.check{width:80%;background:#fff;border-radius:12px;box-shadow:0 8px 22px rgba(20,30,80,.14);padding:10px 12px;display:grid;gap:7px;font-size:12px;font-weight:600;color:#333}
+.check div{display:flex;align-items:center;gap:8px}
+.check .ok{width:16px;height:16px;border-radius:50%;background:var(--green);display:grid;place-items:center;color:#fff}
+.check .ok svg{width:10px;height:10px}
+.check kbd{margin-left:auto;font:600 11px var(--font);background:#f0f1f4;border:1px solid #dcdde3;border-bottom-width:2px;border-radius:5px;padding:1px 6px}
+.req{margin-top:18px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.req span{font-size:13.5px;font-weight:600;background:#fff;box-shadow:0 0 0 1px var(--line);border-radius:20px;padding:7px 13px;color:#343846}
+
+/* faq */
+.faq{max-width:760px;margin:0 auto}
+details{background:#fff;border-radius:16px;box-shadow:0 0 0 1px var(--line);margin-bottom:10px;padding:0 20px}
+summary{cursor:pointer;list-style:none;padding:17px 0;font-weight:650;font-size:16px;display:flex;justify-content:space-between;gap:16px;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:22px;font-weight:400;color:#8a8fa0;transition:transform .2s}
+details[open] summary::after{transform:rotate(45deg)}
+details p{margin:0 0 17px;color:var(--ink2);line-height:1.5;font-size:15px}
+summary:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+
+/* final */
+.final{position:relative;overflow:hidden;border-radius:32px;padding:64px 24px;text-align:center;color:#fff;
+  background:radial-gradient(50% 70% at 15% 110%,#ff8a5c 0,transparent 70%),radial-gradient(50% 70% at 90% 100%,#b04bff 0,transparent 70%),radial-gradient(60% 60% at 70% 0,#2f7bff 0,transparent 70%),linear-gradient(160deg,#233a9c,#1a1b52)}
+.final img{width:104px;height:104px;filter:drop-shadow(0 14px 28px rgba(0,0,40,.45))}
+.final h2{margin:14px 0 6px}
+.final .sub{color:rgba(255,255,255,.8);margin-bottom:26px}
+.final .dl{height:52px;padding:0 28px;font-size:16.5px}
+.final .meta{margin-top:14px;font-size:13px;color:rgba(255,255,255,.72)}
+footer{text-align:center;color:#8a8fa0;font-size:13px;padding:10px 20px 50px}
+footer a{color:#5c6170}
+
+.paused *,.paused *::before,.paused *::after{animation-play-state:paused!important}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width:1100px){ .rail{display:none} }
+@media (max-width:900px){
+  .speed{grid-template-columns:1fr;padding:34px 24px}
+  .strip{grid-template-columns:repeat(3,1fr)}
+  .steps{grid-template-columns:1fr}
+  .step .pic{height:130px}
+}
+@media (max-width:760px){
+  :root{--notch:150px;--wing:78px;--story:640vh}
+  .mb-l span,.mb-r .hide-s{display:none}
+  .mb-l{gap:12px}
+  .wing.l{padding-left:12px}.wing.r{padding-right:10px}
+  .bars{gap:2px}.bars i{width:2.5px}
+  .desk{bottom:118px;top:calc(var(--mb) + 16px)}
+  .dock{display:none}
+  .cap-chip{bottom:26px;font-size:14px}
+  .hint{bottom:30px}
+  .key{left:auto;right:5%;bottom:110px}
+  .cap{width:66px;height:66px;border-radius:13px}
+  .cap .fn{font-size:14px;right:9px;top:7px}.cap svg{left:9px;bottom:9px;width:16px;height:16px}
+  .key .kl{margin-top:12px;font-size:11px}
+  .apps{grid-template-columns:1fr 1fr;gap:14px}
+  .mw .body{min-height:120px;padding:12px}
+  .mw .txt{font-size:13.5px}
+  section.s{padding:80px 18px}
+  .ctl{right:10px}
+  .live{font-size:14px;white-space:normal;text-align:center}
+}
+@media (max-width:560px){
+  .strip{grid-template-columns:repeat(2,1fr)}
+  .apps{grid-template-columns:1fr}
+  .msgs .who{margin-right:0}
+  .final{padding:48px 18px}
+}
+@media (max-height:720px) and (min-width:761px){ .key{bottom:150px} .desk{bottom:130px} .cap-chip{bottom:86px} }
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .bars i{transform:scaleY(.6)!important}.bars i:nth-child(odd){transform:scaleY(.9)!important}
+  .eq i{transform:scaleY(.7)!important}
+}
+</style>
+</head>
+<body>
+
+<!-- SVG sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-spk" viewBox="0 0 24 24"><path d="M3.5 9.2h3.3l4.7-4v13.6l-4.7-4H3.5z" fill="currentColor"/><path d="M15 8.6a4.8 4.8 0 0 1 0 6.8M17.9 5.8a8.8 8.8 0 0 1 0 12.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M10 3l1.9 5.1L17 10l-5.1 1.9L10 17l-1.9-5.1L3 10l5.1-1.9z" fill="currentColor"/><path d="M18 13.5l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9z" fill="currentColor"/><path d="M18 2.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z" fill="currentColor"/></symbol>
+    <symbol id="i-ud" viewBox="0 0 14 24"><path d="M7 2l5 6H2zM7 22l-5-6h10z" fill="currentColor"/></symbol>
+    <symbol id="i-rew" viewBox="0 0 24 24"><path d="M11 6v12L3 12zM20 6v12l-8-6z" fill="currentColor"/></symbol>
+    <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M4 6v12l8-6zM13 6v12l8-6z" fill="currentColor"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-kb" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 10h1M9.5 10h1M13 10h1M16.5 10h1M7 14h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 3.5v11M7 10l5 5 5-5M4.5 19.5h15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-ss" viewBox="0 0 24 24"><path d="M5 3.5h14a3.5 3.5 0 0 1 3.5 3.5v7a3.5 3.5 0 0 1-3.5 3.5H10l-4.5 3.8V17.5H5A3.5 3.5 0 0 1 1.5 14V7A3.5 3.5 0 0 1 5 3.5z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7 9h2l2.5-2v7L9 12H7z" fill="currentColor"/><path d="M13.8 8.4a3 3 0 0 1 0 4.2M15.8 6.8a5.4 5.4 0 0 1 0 7.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<main>
+<!-- ============ STORY ============ -->
+<div class="story" id="story">
+  <div class="stage" id="stage">
+    <div class="wall" aria-hidden="true">
+      <svg viewBox="0 0 1440 560" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a8bff" stop-opacity=".55"/><stop offset="1" stop-color="#7b3fe4" stop-opacity=".2"/></linearGradient>
+          <linearGradient id="g2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff9a6b" stop-opacity=".55"/><stop offset=".6" stop-color="#d45bff" stop-opacity=".35"/><stop offset="1" stop-color="#4b6bff" stop-opacity=".25"/></linearGradient>
+          <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1f5e" stop-opacity=".2"/><stop offset="1" stop-color="#0d0f35" stop-opacity=".75"/></linearGradient>
+        </defs>
+        <path d="M0 230C240 140 420 300 720 230S1180 90 1440 170V560H0z" fill="url(#g1)"/>
+        <path d="M0 330C300 250 520 400 820 330S1250 240 1440 300V560H0z" fill="url(#g2)"/>
+        <path d="M0 430C260 380 560 470 860 420S1260 380 1440 420V560H0z" fill="url(#g3)"/>
+      </svg>
+    </div>
+
+    <!-- menu bar -->
+    <div class="menubar" aria-hidden="true">
+      <div class="mb-l">
+        <svg width="14" height="16" viewBox="0 0 14 17"><path fill="#fff" d="M11.6 9c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.2.8-.7 0-1.7-.8-2.8-.7C3 4.2 1.6 5 .9 6.3-.6 8.9.5 12.8 2 14.9c.7 1 1.5 2.2 2.6 2.1 1-.04 1.4-.7 2.7-.7 1.2 0 1.6.7 2.7.7 1.1 0 1.8-1 2.5-2.1.8-1.2 1.1-2.3 1.1-2.4 0 0-2-.8-2-3.5zM9.6 2.8c.6-.7 1-1.7.9-2.7-.8 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 1.9-.5 2.5-1.2z"/></svg>
+        <b id="appName">Finder</b><span>File</span><span>Edit</span><span>View</span><span>Window</span><span>Help</span>
+      </div>
+      <div class="mb-r">
+        <div class="mb-ss" id="mbss" title="SwipeSpeak"><svg viewBox="0 0 24 24" style="color:#fff"><use href="#i-ss"/></svg></div>
+        <svg class="hide-s" viewBox="0 0 24 18"><path d="M12 16.5l2.6-3a3.6 3.6 0 0 0-5.2 0zM5.6 9.2a9 9 0 0 1 12.8 0l-1.9 2a6.3 6.3 0 0 0-9 0zM1.6 5.2a14.6 14.6 0 0 1 20.8 0l-1.9 2A11.9 11.9 0 0 0 3.5 7.2z" fill="#fff"/></svg>
+        <svg viewBox="0 0 30 14"><rect x=".7" y=".7" width="24" height="12.6" rx="3.6" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.2"/><rect x="2.6" y="2.6" width="16.5" height="8.8" rx="2" fill="#fff"/><path d="M26.6 5v4c.9-.3 1.5-1.1 1.5-2s-.6-1.7-1.5-2z" fill="#fff" fill-opacity=".6"/></svg>
+        <span class="mb-time hide-s">Sat 26 Sep</span><span class="mb-time">9:41</span>
+      </div>
+    </div>
+
+    <!-- notch with recording wings -->
+    <div class="island" aria-hidden="true">
+      <div class="wing l" id="wingL"><div class="inner"><div class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>
+      <div class="notch"></div>
+      <div class="wing r" id="wingR"><div class="inner"><div class="stop"><i></i></div></div></div>
+    </div>
+    <div class="live" id="live" aria-hidden="true"><span class="dot"></span><span id="liveWords"></span></div>
+
+    <!-- desk windows -->
+    <div class="desk" id="desk">
+      <div class="win safari" id="safari" aria-hidden="true">
+        <div class="bar"><div class="tl"><i></i><i></i><i></i></div>
+          <div class="url"><svg viewBox="0 0 24 24" style="color:#777"><use href="#i-lock"/></svg>dailywalk.example</div></div>
+        <div class="article" id="article">
+          <div class="kicker">Wellness</div>
+          <h3>The quiet power of a ten-minute walk</h3>
+          <p id="p1"></p>
+          <p id="p2"></p>
+          <div class="skel" style="width:92%"></div><div class="skel" style="width:84%"></div><div class="skel" style="width:60%"></div>
+        </div>
+      </div>
+      <div class="win msgs" id="msgs" aria-hidden="true">
+        <div class="bar"><div class="tl"><i></i><i></i><i></i></div><div class="who"><span class="avatar">D</span>Dad</div></div>
+        <div class="thread">
+          <div class="stamp">Today 9:38</div>
+          <div class="bub them">Are we still on for dinner this week?</div>
+          <div class="bub them">Mum says Wednesday is tricky 🙈</div>
+        </div>
+        <div class="compose"><span class="clean" id="clean">✓ ums removed · punctuation added</span><span id="typed"></span><span class="caret" id="caret"></span><span class="ph" id="ph">iMessage</span></div>
+      </div>
+    </div>
+
+    <!-- keycap -->
+    <div class="key" id="key" aria-hidden="true">
+      <div class="cap"><span class="fn">fn</span><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg></div>
+      <div class="kl" id="keyLabel">hold</div>
+    </div>
+
+    <!-- read aloud overlay parts -->
+    <div class="pill" id="pill" aria-hidden="true">
+      <div class="z z1" id="z1"><svg><use href="#i-spk"/></svg><div class="ring" id="ring1"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg></div></div>
+      <div class="z z2" id="z2"><svg><use href="#i-spark"/></svg><div class="ring" id="ring2"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg></div></div>
+      <div class="z z3"><svg viewBox="0 0 14 24"><use href="#i-ud"/></svg></div>
+    </div>
+    <div class="ctl" id="ctl" aria-hidden="true">
+      <div class="lab"><div class="bars"><i></i><i></i><i></i><i></i><i></i></div>Speaking</div>
+      <div class="b"><svg><use href="#i-rew"/></svg></div>
+      <div class="b"><svg><use href="#i-pause"/></svg></div>
+      <div class="b" id="fwd"><svg><use href="#i-fwd"/></svg></div>
+    </div>
+    <div class="sum" id="sum" aria-hidden="true">
+      <h4><svg><use href="#i-spark"/></svg>SUMMARY</h4>
+      <div class="load"><div class="shim" style="width:90%"></div><div class="shim" style="width:76%"></div><div class="shim" style="width:84%"></div></div>
+      <ul><li>A 10-minute walk after dinner helps.</li><li>More energy, a clearer head, better sleep.</li><li>Free, easy, and soon a habit.</li></ul>
+    </div>
+    <div class="wheel" id="wheel" aria-hidden="true"><i id="wheelDot"></i><b></b></div>
+    <svg class="trail" id="trail" aria-hidden="true"><path id="trailPath" d=""/></svg>
+    <div class="shake" id="shake" aria-hidden="true">‹ ‹ ›</div>
+    <div class="ptr" id="ptr" aria-hidden="true">
+      <svg class="arrow" viewBox="0 0 22 32"><path d="M2 1.5v24.2l5.8-5.6 3.7 8.6 3.9-1.7-3.6-8.4h8.1z" fill="#000" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <svg class="beam" viewBox="0 0 10 22"><path d="M1.5 1.5c2 0 3.5.6 3.5 2.2v14.6c0 1.6-1.5 2.2-3.5 2.2M8.5 1.5c-2 0-3.5.6-3.5 2.2v14.6c0 1.6 1.5 2.2 3.5 2.2M3 11h4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M1.5 1.5c2 0 3.5.6 3.5 2.2v14.6c0 1.6-1.5 2.2-3.5 2.2M8.5 1.5c-2 0-3.5.6-3.5 2.2v14.6c0 1.6 1.5 2.2 3.5 2.2M3 11h4" fill="none" stroke="#000" stroke-width="1.3" stroke-linecap="round"/></svg>
+    </div>
+
+    <!-- dock -->
+    <div class="dock" aria-hidden="true">
+      <div class="app a6"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="#fff"/></svg></div>
+      <div class="app a1 run"><svg viewBox="0 0 24 24"><path d="M12 4c5 0 9 3.2 9 7.3s-4 7.3-9 7.3c-1 0-2-.1-2.9-.4L5 20l1-3.6C4.2 15 3 13.2 3 11.3 3 7.2 7 4 12 4z" fill="#fff"/></svg></div>
+      <div class="app a2 run"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#2d8cff"/><path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z" fill="#fff"/><path d="M8.5 15.5l2.2-4.8 2.6 2.6z" fill="#ff3b30"/></svg></div>
+      <div class="app a3"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2" fill="#fff"/><path d="M3.5 7l8.5 6 8.5-6" fill="none" stroke="#1668f0" stroke-width="1.6"/></svg></div>
+      <div class="app a4"><svg viewBox="0 0 24 24"><path d="M6 8h12M6 12h12M6 16h8" stroke="#b08500" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+      <div class="app a5"><b>SAT</b><span>26</span></div>
+      <div class="sep"></div>
+      <img src="../../assets/icon.png" alt="" width="52" height="52">
+    </div>
+
+    <!-- captions + chapter rail -->
+    <div class="cap-chip" id="capChip" aria-live="polite"><span class="n" id="capN">1 · Dictation</span><span class="t" id="capT"></span></div>
+    <nav class="rail" id="rail" aria-label="Story chapters">
+      <button data-go="0.07"><span>Dictation</span><i></i></button>
+      <button data-go="0.335"><span>Read Aloud</span><i></i></button>
+      <button data-go="0.575"><span>Summary</span><i></i></button>
+      <button data-go="0.765"><span>Gestures</span><i></i></button>
+    </nav>
+
+    <!-- floating intro card -->
+    <div class="intro" id="intro">
+      <div class="row">
+        <img src="../../assets/icon.png" alt="SwipeSpeak app icon" width="66" height="66">
+        <div>
+          <h1>SwipeSpeak</h1>
+          <div class="tag">Talk to type. Select to hear.<span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
+        </div>
+      </div>
+      <a class="dl" href="https://github.com/lman80/SwipeSpeak-app/releases"><svg><use href="#i-dl"/></svg><span class="dl-label">Download</span></a>
+      <div class="meta">Free · No account · macOS 14+ · Apple silicon</div>
+    </div>
+    <div class="hint" id="hint" aria-hidden="true"><div class="mouse"><i></i></div>Scroll to watch it work</div>
+  </div>
+</div>
+
+<!-- ============ WORKS EVERYWHERE ============ -->
+<section class="s" id="apps">
+  <div class="head" style="text-align:center">
+    <div class="eyebrow">Any app</div>
+    <h2>Works wherever you type or read.</h2>
+  </div>
+  <div class="apps" id="appsGrid">
+    <div class="mw dict"><div class="badge"><div class="bars"><i></i><i></i><i></i><i></i><i></i></div><div class="stop"><i></i></div></div>
+      <div class="top"><div class="tl"><i></i><i></i><i></i></div>Mail<span class="ic" style="background:#1668f0;color:#fff"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2" fill="currentColor"/></svg></span></div>
+      <div class="body"><div class="l" style="width:40%"></div><span class="txt">Thanks, I'll send the photos tonight.</span></div></div>
+    <div class="mw read"><div class="mpill"><span><svg><use href="#i-spk"/></svg></span><span><svg><use href="#i-spark"/></svg></span><span><svg viewBox="0 0 14 24"><use href="#i-ud"/></svg></span></div>
+      <div class="top"><div class="tl"><i></i><i></i><i></i></div>Safari<span class="ic" style="background:#2d8cff;color:#fff"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg></span></div>
+      <div class="body"><div class="l" style="width:70%"></div><span class="txt">Rain is expected across the region by late afternoon.</span></div></div>
+    <div class="mw dict"><div class="badge"><div class="bars"><i></i><i></i><i></i><i></i><i></i></div><div class="stop"><i></i></div></div>
+      <div class="top"><div class="tl"><i></i><i></i><i></i></div>Notes<span class="ic" style="background:#ffd84a;color:#8a6500"><svg viewBox="0 0 24 24"><path d="M5 8h14M5 12h14M5 16h9" stroke="currentColor" stroke-width="2.5"/></svg></span></div>
+      <div class="body"><div class="l" style="width:30%"></div><span class="txt">Buy milk, eggs and birthday candles.</span></div></div>
+    <div class="mw read"><div class="mpill"><span><svg><use href="#i-spk"/></svg></span><span><svg><use href="#i-spark"/></svg></span><span><svg viewBox="0 0 14 24"><use href="#i-ud"/></svg></span></div>
+      <div class="top"><div class="tl"><i></i><i></i><i></i></div>Preview · PDF<span class="ic" style="background:#e5572a;color:#fff"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="16" rx="2" fill="currentColor"/></svg></span></div>
+      <div class="body"><div class="l" style="width:55%"></div><span class="txt">Section 4: payments are due within thirty days.</span></div></div>
+    <div class="mw dict"><div class="badge"><div class="bars"><i></i><i></i><i></i><i></i><i></i></div><div class="stop"><i></i></div></div>
+      <div class="top"><div class="tl"><i></i><i></i><i></i></div>Slack<span class="ic" style="background:#4a154b;color:#fff"><svg viewBox="0 0 24 24"><path d="M4 6h16v10H9l-5 4z" fill="currentColor"/></svg></span></div>
+      <div class="body"><div class="l" style="width:50%"></div><span class="txt">Running five minutes late, start without me.</span></div></div>
+    <div class="mw read"><div class="mpill"><span><svg><use href="#i-spk"/></svg></span><span><svg><use href="#i-spark"/></svg></span><span><svg viewBox="0 0 14 24"><use href="#i-ud"/></svg></span></div>
+      <div class="top"><div class="tl"><i></i><i></i><i></i></div>Word<span class="ic" style="background:#2b579a;color:#fff"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2" fill="currentColor"/></svg></span></div>
+      <div class="body"><div class="l" style="width:65%"></div><span class="txt">The committee will meet again on the first Monday.</span></div></div>
+  </div>
+  <div class="legend"><span><b><svg><use href="#i-mic"/></svg></b>Talk → it types</span><span><b class="r"><svg><use href="#i-spk"/></svg></b>Select → it reads</span></div>
+</section>
+
+<!-- ============ SPEED ============ -->
+<section class="s" id="speedSec" style="padding-top:20px">
+  <div class="speed" id="speed">
+    <div>
+      <div class="eyebrow">Speed</div>
+      <div class="big" style="margin-top:14px">~4×<br><small>faster than typing</small></div>
+    </div>
+    <div class="lanes">
+      <div class="lane"><div class="lh"><span class="ico"><svg><use href="#i-kb"/></svg></span>Typing<span class="wpm"><b>~40</b> words/min</span></div>
+        <div class="tx" id="txType"></div><div class="track"><i id="barType"></i></div></div>
+      <div class="lane sp"><div class="lh"><span class="ico"><svg><use href="#i-mic"/></svg></span>Speaking<span class="done" id="doneSp"><svg width="12" height="12"><use href="#i-check"/></svg>done</span><span class="wpm"><b>~150</b> words/min</span></div>
+        <div class="tx" id="txSpeak"></div><div class="track"><i id="barSpeak"></i></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRIVACY / FREE ============ -->
+<section class="s" style="padding-top:20px">
+  <div class="strip">
+    <div class="chip"><div class="ci"><svg viewBox="0 0 24 24"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-2-4-6-4-6-1.5S9 7 12 7c3 0 6-.5 6-2.5S14 3 12 7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>Free</div>
+    <div class="chip"><div class="ci"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c.8-4 4-6 7.5-6s6.7 2 7.5 6M4 4l16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>No account</div>
+    <div class="chip"><div class="ci"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10.5h18M4 4l16 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>No subscription</div>
+    <div class="chip"><div class="ci"><svg viewBox="0 0 24 24"><use href="#i-spk"/></svg></div>Reads on your Mac</div>
+    <div class="chip"><div class="ci"><svg viewBox="0 0 24 24"><path d="M2 8.5a14.5 14.5 0 0 1 20 0M5.5 12a9.5 9.5 0 0 1 13 0M9 15.5a4.5 4.5 0 0 1 6 0M3 3l18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>Offline dictation</div>
+    <div class="chip"><div class="ci"><svg viewBox="0 0 24 24"><use href="#i-lock"/></svg></div>No SwipeSpeak server</div>
+  </div>
+</section>
+
+<!-- ============ INSTALL ============ -->
+<section class="s" id="install">
+  <div class="head" style="text-align:center">
+    <div class="eyebrow">Install</div>
+    <h2>Three steps. Two minutes.</h2>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="pic"><div class="zipflow"><img src="../../assets/icon.png" alt=""><span class="arr">→</span><div class="folder"><span>Applications</span></div></div></div>
+      <h3>Download &amp; drag</h3><p>Unzip, move it to Applications.</p>
+    </div>
+    <div class="step">
+      <div class="pic"><div class="settings"><div class="crumb">System Settings › Privacy &amp; Security</div>
+        <div class="rowx"><span>“SwipeSpeak” was blocked.</span><span class="ob">Open Anyway</span></div></div></div>
+      <h3>Open Anyway, once</h3><p>Not from the App Store, so macOS asks one time.</p>
+    </div>
+    <div class="step">
+      <div class="pic"><div class="check">
+        <div><span class="ok"><svg><use href="#i-check"/></svg></span>Accessibility</div>
+        <div><span class="ok"><svg><use href="#i-check"/></svg></span>Microphone</div>
+        <div><span class="ok"><svg><use href="#i-check"/></svg></span>Talk key <kbd>fn</kbd></div>
+        <div><span class="ok"><svg><use href="#i-check"/></svg></span>Speak Selection</div></div></div>
+      <h3>Follow the Setup Guide</h3><p>It checks each switch for you.</p>
+    </div>
+  </div>
+  <div class="req"><span>macOS 14 Sonoma or later</span><span>Apple silicon (M1 or later)</span></div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="s" id="faq" style="padding-top:30px">
+  <div class="head" style="text-align:center"><div class="eyebrow">FAQ</div><h2>Quick answers.</h2></div>
+  <div class="faq">
+    <details><summary>Is it really free?</summary><p>Yes. No account, no subscription, no ads.</p></details>
+    <details><summary>Which Macs does it run on?</summary><p>macOS 14 Sonoma or later, on Apple silicon (M1 or later).</p></details>
+    <details><summary>Why do I need “Open Anyway”?</summary><p>SwipeSpeak isn't from the App Store, so macOS asks once. Open System Settings › Privacy &amp; Security, scroll down and click Open Anyway.</p></details>
+    <details><summary>Do I need an API key?</summary><p>Only for fast cloud dictation and ✨ summaries: a free Groq key from console.groq.com/keys. Offline dictation and reading aloud need no key.</p></details>
+    <details><summary>Where does my text go?</summary><p>There's no SwipeSpeak server and no account. Reading aloud happens on your Mac. Text only leaves your Mac for ✨ summaries, and audio only for cloud dictation (both to Groq). Offline mode keeps dictation on the Mac.</p></details>
+    <details><summary>Whose voice reads to me?</summary><p>Your Mac's own Spoken Content voice (Siri voices), at the speed you set in System Settings.</p></details>
+    <details><summary>What else can Dictation do?</summary><p>Optional AI cleanup, spoken commands like “new line” and “bullet point”, Edit Mode for selected text, modes per app, words it learns, Paste Again, meeting recording, audio-file transcription and history.</p></details>
+  </div>
+</section>
+
+<!-- ============ FINAL ============ -->
+<section class="s" style="padding-top:20px">
+  <div class="final">
+    <img src="../../assets/icon.png" alt="SwipeSpeak app icon" width="104" height="104">
+    <h2>Talk. Select. Listen.</h2>
+    <p class="sub">One free menu bar app.</p>
+    <a class="dl" href="https://github.com/lman80/SwipeSpeak-app/releases"><svg><use href="#i-dl"/></svg><span class="dl-label">Download</span></a>
+    <div class="meta">macOS 14+ · Apple silicon · Free</div>
+  </div>
+</section>
+</main>
+<footer>SwipeSpeak · <a href="https://github.com/lman80/SwipeSpeak-app">GitHub</a> · <a href="https://github.com/lman80/SwipeSpeak-app/releases">Releases</a></footer>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const qs = new URLSearchParams(location.search);
+const debug = qs.has('debug') || qs.has('p');
+function showErr(e){ if(!debug) return; const d=document.createElement('pre'); d.style.cssText='position:fixed;z-index:9999;left:8px;bottom:8px;background:#c00;color:#fff;padding:8px;font:12px monospace;max-width:90vw;white-space:pre-wrap'; d.textContent='JS ERROR: '+(e && (e.stack||e.message) || e); document.body.appendChild(d); }
+window.addEventListener('error', e => showErr(e.error || e.message));
+
+/* ---------- Download buttons ---------- */
+try {
+  const setDl = (href, label, soon) => document.querySelectorAll('a.dl').forEach(a => {
+    a.href = href; a.querySelector('.dl-label').textContent = label; a.classList.toggle('soon', !!soon);
+  });
+  fetch('https://api.github.com/repos/lman80/SwipeSpeak-app/releases/latest', {headers:{Accept:'application/vnd.github+json'}})
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(j => {
+      const a = (j.assets || []).find(x => /\.(zip|dmg)$/i.test(x.name));
+      if (!a) throw 'no asset';
+      const v = String(j.tag_name || j.name || '').replace(/^v/i, '');
+      setDl(a.browser_download_url, 'Download SwipeSpeak ' + v, false);
+    })
+    .catch(() => setDl('https://github.com/lman80/SwipeSpeak-app/releases', 'Coming soon', true));
+} catch (e) { showErr(e); }
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+
+/* ---------- Pause CSS loops off screen ---------- */
+const io = new IntersectionObserver(es => es.forEach(e => {
+  e.target.classList.toggle('paused', !e.isIntersecting);
+  if (e.target._vis) e.target._vis(e.isIntersecting);
+}), {rootMargin:'80px'});
+
+/* =============== STORY =============== */
+const stage = $('stage'), story = $('story');
+const P1 = ["A short walk after dinner does more than you might think.", "It steadies your energy, clears your head and helps you sleep.", "Best of all, it costs nothing and needs no gear."];
+const P2 = ["Start small: ten minutes around the block is plenty.", "Leave your phone in your pocket and notice the sounds around you.", "By the end of the week, it will feel like a habit."];
+const words = []; const sentStart = []; const sentEnd = [];
+let sIdx = 0;
+[[P1,$('p1')],[P2,$('p2')]].forEach(([sents, el], para) => {
+  sents.forEach((s, si) => {
+    sentStart[sIdx] = words.length;
+    s.split(' ').forEach((w, wi, arr) => {
+      const span = document.createElement('span'); span.className = 'w';
+      const i = document.createElement('i'); i.textContent = w; span.appendChild(i);
+      const last = (wi === arr.length - 1) && (si === sents.length - 1);
+      if (!last) span.appendChild(document.createTextNode(' '));
+      el.appendChild(span);
+      words.push({el:span, inner:i, s:sIdx, para});
+    });
+    sentEnd[sIdx] = words.length - 1; sIdx++;
+  });
+});
+const n1 = sentEnd[2] + 1, nAll = words.length;
+
+const LIVE = ["um,", "so", "can", "we", "move", "dinner", "to", "thursday", "at", "seven"];
+const liveBox = $('liveWords'); const liveEls = LIVE.map((w,i) => { const s=document.createElement('span'); s.className='lw'+(i===0?' um':''); s.textContent=w+' '; liveBox.appendChild(s); return s; });
+const TYPED = "Can we move dinner to Thursday at 7?";
+
+const el = {
+  intro:$('intro'), hint:$('hint'), msgs:$('msgs'), safari:$('safari'), wingL:$('wingL'), wingR:$('wingR'), live:$('live'),
+  key:$('key'), keyLabel:$('keyLabel'), typed:$('typed'), ph:$('ph'), caret:$('caret'), clean:$('clean'), appName:$('appName'),
+  ptr:$('ptr'), pill:$('pill'), z1:$('z1'), z2:$('z2'), ring1:$('ring1').querySelector('circle'), ring2:$('ring2').querySelector('circle'),
+  ctl:$('ctl'), fwd:$('fwd'), sum:$('sum'), sumLis:[...$('sum').querySelectorAll('li')], wheel:$('wheel'), wheelDot:$('wheelDot'),
+  trail:$('trailPath'), shake:$('shake'), capChip:$('capChip'), capN:$('capN'), capT:$('capT'), mbss:$('mbss'),
+  wingInL:$('wingL').firstElementChild, wingInR:$('wingR').firstElementChild, rail:[...document.querySelectorAll('.rail button')]
+};
+
+/* cached style writers */
+function css(e, prop, v){ const k='_'+prop; if (e[k] !== v){ e[k] = v; e.style[prop] = v; } }
+function op(e, v){ css(e, 'opacity', (Math.round(v*1000)/1000).toString()); }
+function tf(e, v){ css(e, 'transform', v); }
+function cls(e, c, on){ on = !!on; const k='_c'+c; if (e[k] !== on){ e[k] = on; e.classList.toggle(c, on); } }
+function txt(e, v){ if (e._txt !== v){ e._txt = v; e.textContent = v; } }
+
+const clamp = (v,a=0,b=1) => Math.min(b, Math.max(a, v));
+const seg = (p,a,b) => clamp((p-a)/(b-a));
+const ease = t => t<.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+const eo = t => 1 - Math.pow(1-t, 3);
+const lerp = (a,b,t) => a + (b-a)*t;
+const lp = (A,B,t) => ({x:lerp(A.x,B.x,t), y:lerp(A.y,B.y,t)});
+
+/* ---------- measurement ---------- */
+let M = null;
+function off(e){ let x=0,y=0; while (e && e !== stage){ x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; } return {x,y}; }
+function measure(){
+  const W = stage.offsetWidth, H = stage.offsetHeight;
+  const pts = [];
+  words.forEach((w, i) => {
+    const o = off(w.inner), h = w.inner.offsetHeight, wd = w.inner.offsetWidth;
+    if (i === 0) pts.push({x:o.x - 1, y:o.y + h*0.55});
+    pts.push({x:o.x + wd + 1, y:o.y + h*0.55});
+  });
+  const bw = 120, bh = 36;
+  const mkBubble = (E) => {
+    const Eb = {x:E.x + 22, y:E.y + 10};
+    let bx = clamp(Eb.x + 16, 8, W - bw - 8), by = clamp(Eb.y - bh/2 + 4, 40, H - bh - 8);
+    if (bx < Eb.x - 10) { by = Eb.y + 18; } // clamped against the right edge: drop below the pointer
+    return {Eb, bx, by, spk:{x:bx+23, y:by+bh/2}, spr:{x:bx+46+21, y:by+bh/2}};
+  };
+  M = {W, H, pts, b1:mkBubble(pts[n1]), b2:mkBubble(pts[nAll]), A0:{x:W*0.78, y:H*0.86}};
+}
+function dragPos(f){ const i = Math.min(Math.floor(f), M.pts.length-2); return lp(M.pts[i], M.pts[i+1], f - i); }
+
+/* ---------- timeline ---------- */
+const CH = [0.05, 0.31, 0.565, 0.755, 0.975]; // chapter starts / end
+const KEYFRAMES = [0, 0.19, 0.275, 0.52, 0.72, 0.815, 0.895, 0.96, 1]; // reduced motion stills
+let selA = 0, selB = -1, readI = -1;
+
+function render(p){
+  if (!M) measure();
+  const W = M.W, H = M.H;
+
+  /* intro card + hint */
+  const introOut = seg(p, 0, 0.035), introBack = seg(p, 0.978, 0.995);
+  const iv = introBack > 0 ? introBack : 1 - introOut;
+  op(el.intro, iv);
+  tf(el.intro, `translate(-50%,-56%) translateY(${(introBack>0 ? (1-introBack)*20 : -introOut*30).toFixed(1)}px) scale(${(introBack>0 ? .96 + .04*introBack : 1 - .05*introOut).toFixed(3)})`);
+  css(el.intro, 'pointerEvents', iv > 0.5 ? 'auto' : 'none');
+  css(el.intro, 'visibility', iv <= 0.001 ? 'hidden' : 'visible');
+  op(el.hint, 1 - seg(p, 0, 0.012));
+
+  /* windows */
+  const toCenter = ease(seg(p, 0.02, 0.07));
+  const swap = ease(seg(p, 0.30, 0.335));
+  const sx = Math.min(W*0.2, 260);
+  op(el.msgs, 1 - swap);
+  tf(el.msgs, swap > 0 ? `translate3d(${(-40*swap).toFixed(1)}px,${(10*swap).toFixed(1)}px,0) scale(${(1-.04*swap).toFixed(3)})`
+                       : `translate3d(${(-sx*(1-toCenter)).toFixed(1)}px,${(40*(1-toCenter)).toFixed(1)}px,0) scale(${(.9+.1*toCenter).toFixed(3)})`);
+  const safariIntro = 1 - seg(p, 0.02, 0.06);
+  const safOp = p < 0.1 ? safariIntro : swap;
+  op(el.safari, safOp);
+  tf(el.safari, p < 0.1 ? `translate3d(${(sx*0.9 + 60*(1-safariIntro)).toFixed(1)}px,-10px,0) scale(.86)` : (swap < 1 ? `translate3d(0,${(16*(1-swap)).toFixed(1)}px,0) scale(${(.97+.03*swap).toFixed(3)})` : 'none'));
+  css(el.msgs, 'zIndex', p < 0.3 ? '2' : '1'); css(el.safari, 'zIndex', p < 0.3 ? '1' : '2');
+  txt(el.appName, p < 0.02 ? 'Finder' : p < 0.32 ? 'Messages' : 'Safari');
+
+  /* ---- Chapter 1: Dictation ---- */
+  const keyIn = seg(p, 0.055, 0.075) * (1 - seg(p, 0.29, 0.305));
+  op(el.key, keyIn); tf(el.key, `translateY(${(14*(1-keyIn)).toFixed(1)}px)`);
+  const down = p >= 0.09 && p < 0.215;
+  cls(el.key, 'down', down);
+  txt(el.keyLabel, p < 0.215 ? 'hold' : 'let go');
+  const wing = ease(seg(p, 0.09, 0.115)) * (1 - ease(seg(p, 0.215, 0.235)));
+  const wpx = getComputedWing();
+  tf(el.wingL, `translate3d(${(wpx*(1-wing)).toFixed(1)}px,0,0)`);
+  tf(el.wingR, `translate3d(${(-wpx*(1-wing)).toFixed(1)}px,0,0)`);
+  op(el.wingInL, seg(wing, .6, 1)); op(el.wingInR, seg(wing, .6, 1));
+  cls(stage, 'rec', p >= 0.1 && p < 0.215);
+  cls(el.mbss, 'on', p >= 0.09 && p < 0.235);
+  const liveV = seg(p, 0.108, 0.118) * (1 - seg(p, 0.216, 0.232));
+  op(el.live, liveV); tf(el.live, `translateX(-50%) translateY(${(-6*(1-liveV)).toFixed(1)}px)`);
+  const nLive = Math.floor(seg(p, 0.115, 0.205) * LIVE.length + 0.35);
+  liveEls.forEach((s, i) => cls(s, 'on', i < nLive));
+  const nChars = Math.round(seg(p, 0.238, 0.282) * TYPED.length);
+  txt(el.typed, TYPED.slice(0, nChars));
+  css(el.ph, 'display', nChars > 0 ? 'none' : '');
+  op(el.clean, seg(p, 0.284, 0.292)); tf(el.clean, `translateY(${(6*(1-seg(p,0.284,0.292))).toFixed(1)}px)`);
+
+  /* ---- Pointer + selection path (chapters 2–4) ---- */
+  let P = null, text = false, sa = 0, sb = -1, rd = -1;
+  const b1 = M.b1, b2 = M.b2, S1 = M.pts[0];
+  if (p >= 0.335) {
+    if (p < 0.345) P = lp(M.A0, S1, ease(seg(p, 0.335, 0.345)));
+    else if (p < 0.425) { const f = n1*ease(seg(p,0.345,0.425)); P = dragPos(f); text = true; sb = Math.floor(f + 0.6) - 1; }
+    else if (p < 0.445) { P = lp(M.pts[n1], b1.Eb, eo(seg(p, 0.425, 0.44))); sb = n1-1; }
+    else if (p < 0.565) { P = lp(b1.Eb, b1.spk, ease(seg(p, 0.445, 0.462))); sb = n1-1; }
+    else if (p < 0.58) { P = lp(b1.spk, S1, ease(seg(p, 0.565, 0.58))); text = p > 0.574; }
+    else if (p < 0.625) { const f = nAll*ease(seg(p,0.58,0.625)); P = dragPos(f); text = true; sb = Math.floor(f + 0.6) - 1; }
+    else if (p < 0.64) { P = lp(M.pts[nAll], b2.Eb, eo(seg(p, 0.625, 0.635))); sb = nAll-1; }
+    else if (p < 0.755) { P = lp(b2.Eb, b2.spr, ease(seg(p, 0.64, 0.655))); sb = p < 0.745 ? nAll-1 : -1; }
+    else if (p < 0.765) { P = lp(b2.spr, S1, ease(seg(p, 0.755, 0.765))); text = p > 0.76; }
+    else if (p < 0.785) { const f = n1*ease(seg(p,0.765,0.785)); P = dragPos(f); text = true; sb = Math.floor(f + 0.6) - 1; }
+    else {
+      sb = p < 0.805 ? n1-1 : p < 0.815 ? sentEnd[3] : p < 0.825 ? sentEnd[4] : nAll-1;
+      if (p < 0.835) P = lp(M.pts[n1], b1.Eb, eo(seg(p, 0.785, 0.795)));
+      else if (p < 0.875) P = lp(b1.Eb, b1.spk, ease(seg(p, 0.835, 0.845)));
+      else if (p < 0.905) { // clockwise circle
+        const t = ease(seg(p, 0.875, 0.905)), r = 26, a = -Math.PI/2 + t*2*Math.PI;
+        P = {x:b1.spk.x + r*Math.cos(a), y:b1.spk.y + r + r*Math.sin(a)};
+      } else if (p < 0.93) P = {x:b1.spk.x, y:b1.spk.y};
+      else { const t = seg(p, 0.93, 0.965); P = {x:b1.spk.x + Math.sin(t*Math.PI*10)*20*Math.sin(Math.PI*t), y:b1.spk.y + Math.sin(t*Math.PI*7)*3}; }
+    }
+  }
+  // reading highlight
+  if (p >= 0.485 && p < 0.55) rd = Math.min(n1-1, Math.floor(seg(p, 0.485, 0.55) * n1));
+  if (p >= 0.855 && p < 0.955) {
+    if (p < 0.875) rd = Math.floor(seg(p, 0.855, 0.875) * (sentEnd[0]-2));
+    else if (p < 0.905) rd = sentEnd[0]-2;
+    else rd = sentStart[1] + Math.floor(seg(p, 0.905, 0.955) * (sentEnd[1]-sentStart[1]));
+  }
+  if (sb !== selB || rd !== readI) {
+    words.forEach((w, i) => { cls(w.el, 'sel', i >= sa && i <= sb); cls(w.el, 'rd', i === rd); });
+    selB = sb; readI = rd;
+  }
+  const ptrV = P ? seg(p, 0.335, 0.34) * (1 - seg(p, 0.97, 0.978)) : 0;
+  op(el.ptr, ptrV);
+  if (P) tf(el.ptr, `translate3d(${P.x.toFixed(1)}px,${P.y.toFixed(1)}px,0)`);
+  cls(el.ptr, 'text', text);
+
+  /* bubble */
+  let bub = null, bv = 0, lit1 = 0, lit2 = 0;
+  const bubPhase = (a, b, B) => { const v = eo(seg(p, a, a+0.012)) * (1 - seg(p, b, b+0.006)); if (v > 0) { bub = B; bv = v; } };
+  bubPhase(0.43, 0.472, b1); bubPhase(0.63, 0.668, b2); bubPhase(0.79, 0.848, b1);
+  if (bub) {
+    op(el.pill, bv);
+    tf(el.pill, `translate3d(${bub.bx.toFixed(1)}px,${bub.by.toFixed(1)}px,0) scale(${(.6 + .4*bv).toFixed(3)})`);
+    lit1 = (p > 0.462 && p < 0.478) ? seg(p, 0.462, 0.471) : (p > 0.845 && p < 0.854) ? seg(p, 0.845, 0.848) : 0;
+    lit2 = (p > 0.655 && p < 0.674) ? seg(p, 0.655, 0.667) : 0;
+  } else op(el.pill, 0);
+  cls(el.z1, 'lit', lit1 > 0); cls(el.z2, 'lit', lit2 > 0);
+  css(el.ring1, 'strokeDashoffset', String(Math.round(100*(1-lit1)))); op(el.ring1, lit1 > 0 && lit1 < 1 ? 1 : 0);
+  css(el.ring2, 'strokeDashoffset', String(Math.round(100*(1-lit2)))); op(el.ring2, lit2 > 0 && lit2 < 1 ? 1 : 0);
+
+  /* speaking controller */
+  const ctlWin = (a, b) => seg(p, a, a+0.008) * (1 - seg(p, b, b+0.008));
+  const cv = Math.max(ctlWin(0.476, 0.552), ctlWin(0.678, 0.738), ctlWin(0.849, 0.953));
+  op(el.ctl, cv); tf(el.ctl, `scale(${(.85 + .15*cv).toFixed(3)}) translateY(${(-8*(1-cv)).toFixed(1)}px)`);
+  cls(stage, 'speaking', cv > 0.5);
+  cls(el.fwd, 'flash', p > 0.899 && p < 0.912);
+
+  /* summary panel */
+  const sv = seg(p, 0.672, 0.684) * (1 - seg(p, 0.738, 0.75));
+  op(el.sum, sv); tf(el.sum, `translateY(${(12*(1-sv)).toFixed(1)}px) scale(${(.95+.05*sv).toFixed(3)})`);
+  cls(el.sum, 'loading', p < 0.688);
+  const bi = (p >= 0.69 && p < 0.738) ? Math.min(2, Math.floor(seg(p, 0.69, 0.735)*3)) : -1;
+  el.sumLis.forEach((li, i) => cls(li, 'rd', i === bi));
+
+  /* scroll wheel */
+  const wv = seg(p, 0.795, 0.8) * (1 - seg(p, 0.83, 0.835));
+  op(el.wheel, wv);
+  tf(el.wheel, `translate3d(${(b1.Eb.x + 22).toFixed(1)}px,${(b1.Eb.y - 64).toFixed(1)}px,0)`);
+  tf(el.wheelDot, `translateY(${((seg(p,0.795,0.835)*5 % 1)*12).toFixed(1)}px)`);
+
+  /* circle trail */
+  const ct = ease(seg(p, 0.875, 0.905)), cfade = 1 - seg(p, 0.906, 0.92);
+  if (ct > 0 && cfade > 0) {
+    const r = 26, cx = b1.spk.x, cy = b1.spk.y + r, a0 = -Math.PI/2, a1 = a0 + Math.max(0.01, ct)*2*Math.PI*0.999;
+    const x0 = cx + r*Math.cos(a0), y0 = cy + r*Math.sin(a0), x1 = cx + r*Math.cos(a1), y1 = cy + r*Math.sin(a1);
+    const d = `M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 ${(a1-a0) > Math.PI ? 1 : 0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+    if (el.trail._d !== d) { el.trail._d = d; el.trail.setAttribute('d', d); }
+    op(el.trail, cfade);
+  } else op(el.trail, 0);
+  const shv = Math.sin(Math.PI * seg(p, 0.93, 0.965));
+  op(el.shake, shv * 0.95); tf(el.shake, `translate3d(${(b1.spk.x - 22).toFixed(1)}px,${(b1.spk.y + 28).toFixed(1)}px,0)`);
+
+  /* captions */
+  let n = '', t = '', ch = -1;
+  if (p >= CH[0] && p < CH[4]) {
+    if (p < CH[1]) { ch = 0; n = '1 · Dictation'; t = p < 0.09 ? 'Hold your talk key' : p < 0.215 ? 'Talk naturally' : p < 0.284 ? 'Let go. It types.' : 'In any app'; }
+    else if (p < CH[2]) { ch = 1; n = '2 · Read Aloud'; t = p < 0.43 ? 'Select any text' : p < 0.476 ? 'Glide onto 🔊' : 'Your Mac reads it'; }
+    else if (p < CH[3]) { ch = 2; n = '3 · Summary'; t = p < 0.672 ? 'Rest on ✨' : 'Hear just the gist'; }
+    else { ch = 3; n = '4 · Gestures'; t = p < 0.849 ? 'Scroll to select more' : p < 0.925 ? 'Circle ↻ to skip ahead' : 'Shake to stop'; }
+  }
+  op(el.capChip, ch >= 0 ? 1 : 0);
+  if (n) { txt(el.capN, n); txt(el.capT, t); }
+  el.rail.forEach((b, i) => cls(b, 'on', i === ch));
+}
+
+let wingPx = 112;
+function getComputedWing(){ return wingPx; }
+function readVars(){ wingPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--wing')) || 112; }
+
+/* ---------- scroll driving ---------- */
+let target = 0, cur = 0, raf = 0;
+const forced = qs.has('p') ? clamp(parseFloat(qs.get('p')) || 0) : null;
+function progress(){
+  const r = story.getBoundingClientRect(); const span = story.offsetHeight - stage.offsetHeight;
+  return span > 0 ? clamp(-r.top / span) : 0;
+}
+function snap(p){ // reduced motion: meaningful stills
+  let best = KEYFRAMES[0];
+  for (let i = 0; i < KEYFRAMES.length - 1; i++) { const mid = (KEYFRAMES[i] + KEYFRAMES[i+1]) / 2; if (p >= (i ? (KEYFRAMES[i-1]+KEYFRAMES[i])/2 : 0)) best = KEYFRAMES[i]; if (p >= mid) best = KEYFRAMES[i+1]; }
+  return best;
+}
+function tick(){
+  raf = 0;
+  if (forced !== null) { render(forced); return; }
+  if (reduce.matches) { const s = snap(target); if (s !== cur) { cur = s; render(cur); } return; }
+  const d = target - cur;
+  cur = Math.abs(d) < 0.0004 ? target : cur + d * 0.2;
+  render(cur);
+  if (cur !== target) raf = requestAnimationFrame(tick);
+}
+function onScroll(){ target = progress(); if (!raf) raf = requestAnimationFrame(tick); }
+function onResize(){ readVars(); M = null; measure(); selB = -2; render(cur); onScroll(); }
+
+try {
+  readVars(); measure();
+  cur = target = forced !== null ? forced : progress();
+  if (reduce.matches && forced === null) cur = snap(target);
+  render(cur);
+  addEventListener('scroll', onScroll, {passive:true});
+  addEventListener('resize', onResize);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(onResize);
+  addEventListener('load', onResize);
+  reduce.addEventListener && reduce.addEventListener('change', onResize);
+  io.observe(stage);
+  // rail navigation
+  el.rail.forEach(b => b.addEventListener('click', () => {
+    const span = story.offsetHeight - stage.offsetHeight;
+    scrollTo({top: story.offsetTop + parseFloat(b.dataset.go) * span, behavior: reduce.matches ? 'auto' : 'smooth'});
+  }));
+  if (forced !== null) { const span = story.offsetHeight - stage.offsetHeight; scrollTo(0, story.offsetTop + forced*span); }
+} catch (e) { showErr(e); }
+
+/* =============== WORKS IN EVERY APP =============== */
+try {
+  const grid = $('appsGrid'), cards = [...grid.children];
+  let idx = -1, timer = 0;
+  const finish = () => cards.forEach(c => { c.classList.add('go', 'fin'); });
+  function step(){
+    idx++;
+    if (idx >= cards.length) {
+      grid.classList.add('reset'); cards.forEach(c => c.classList.remove('go', 'fin')); void grid.offsetWidth; grid.classList.remove('reset'); idx = 0;
+    }
+    cards.forEach((c, i) => { if (i < idx) c.classList.add('fin'); });
+    cards[idx].classList.add('go');
+    // keep the lift only on the current card
+    cards.forEach((c, i) => c.style.transform = i === idx ? '' : (c.classList.contains('go') ? 'none' : ''));
+    cards.forEach((c, i) => c.style.boxShadow = (i !== idx && c.classList.contains('go')) ? '0 0 0 1px rgba(17,19,24,.08),0 14px 34px -12px rgba(20,30,80,.2)' : '');
+  }
+  grid._vis = on => {
+    clearInterval(timer); timer = 0;
+    if (reduce.matches) { finish(); return; }
+    if (on) { step(); timer = setInterval(step, 1900); }
+  };
+  io.observe(grid);
+} catch (e) { showErr(e); }
+
+/* =============== SPEED =============== */
+try {
+  const S = "Running ten minutes late, save me a seat and order me the usual. See you soon!";
+  const tType = $('txType'), tSp = $('txSpeak'), bT = $('barType'), bS = $('barSpeak'), done = $('doneSp');
+  const SPEAK = 1.7, TYPE = SPEAK * 150 / 40, LOOP = 7.2; // seconds (sped up, true ratio)
+  let t0 = 0, raf2 = 0;
+  const paint = t => {
+    const ps = clamp(t / SPEAK), pt = clamp(t / TYPE);
+    tSp.innerHTML = ''; tSp.textContent = S.slice(0, Math.round(ps * S.length));
+    tType.textContent = S.slice(0, Math.round(pt * S.length));
+    if (ps < 1) tSp.insertAdjacentHTML('beforeend', '<span class="c"></span>');
+    tType.insertAdjacentHTML('beforeend', '<span class="c"></span>');
+    bS.style.transform = `scaleX(${ps.toFixed(3)})`; bT.style.transform = `scaleX(${pt.toFixed(3)})`;
+    done.classList.toggle('on', ps >= 1);
+  };
+  let lastC = -1;
+  const loop = now => {
+    if (!t0) t0 = now;
+    const t = ((now - t0) / 1000) % LOOP;
+    const c = Math.round(t * 30); if (c !== lastC) { lastC = c; paint(Math.min(t, 6)); }
+    raf2 = requestAnimationFrame(loop);
+  };
+  const box = $('speed');
+  box._vis = on => {
+    cancelAnimationFrame(raf2); raf2 = 0;
+    if (reduce.matches || !on) { if (reduce.matches) paint(SPEAK); return; }
+    t0 = 0; raf2 = requestAnimationFrame(loop);
+  };
+  paint(SPEAK);
+  io.observe(box);
+} catch (e) { showErr(e); }
+})();
+</script>
+</body>
+</html>
